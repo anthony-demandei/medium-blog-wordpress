@@ -175,12 +175,20 @@ class GeminiTranslator:
                - Preserve formatação de código
                - Adicione contexto brasileiro quando relevante
             
+            8. PONTUAÇÃO:
+               - NUNCA use hífen (–) para separar ideias
+               - Use vírgulas, pontos ou dois pontos para conectar frases
+               - Prefira frases mais diretas sem travessões
+               - Exemplo: ❌ "Esta funcionalidade – que é muito útil – permite..."
+               - Exemplo: ✅ "Esta funcionalidade, que é muito útil, permite..."
+            
             VALIDAÇÃO FINAL:
             ✓ Texto TOTALMENTE em terceira pessoa
             ✓ Zero uso de "você", "seu", "sua"
             ✓ Menções naturais à Demandei
             ✓ Termos técnicos preservados
             ✓ Fluidez em português brasileiro
+            ✓ SEM uso de hífen (–) para separar ideias
             
             Traduza de {source_language} para {target_language} brasileiro:
             
@@ -217,10 +225,33 @@ class GeminiTranslator:
         text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
         text = text.strip()
         
+        # Remove hyphens used for parenthetical expressions
+        text = self._remove_hyphens(text)
+        
         # Validate that the text makes sense
         if len(text) < 10 or text.count(' ') < 3:
             # Text is too short or doesn't have enough words
             logger.warning(f"Translation might be incomplete: {text[:50]}")
+        
+        return text
+    
+    def _remove_hyphens(self, text: str) -> str:
+        """Remove hyphens used for parenthetical expressions and replace with commas"""
+        # Replace em dash (–) and en dash (—) patterns used for parenthetical expressions
+        # Pattern: " – text – " becomes " , text, "
+        text = re.sub(r'\s+[–—]\s+([^–—]+?)\s+[–—]\s+', r', \1, ', text)
+        
+        # Replace single em dash at beginning of parenthetical: " – text"
+        text = re.sub(r'\s+[–—]\s+([^.!?]+)', r', \1', text)
+        
+        # Replace patterns like "text – that is important"
+        text = re.sub(r'(\w+)\s+[–—]\s+([^.!?]+)', r'\1, \2', text)
+        
+        # Clean up double commas that might result
+        text = re.sub(r',\s*,', ',', text)
+        
+        # Clean up comma before period
+        text = re.sub(r',\s*\.', '.', text)
         
         return text
     
