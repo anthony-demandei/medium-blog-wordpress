@@ -165,50 +165,7 @@ class WordPressAPI:
     
     def _create_attribution(self, article: Dict) -> str:
         """Create attribution section for the post"""
-        # Get cleaned attribution data
-        cleaned_data = ContentProcessor.clean_attribution_data(article)
-        
-        if not cleaned_data:
-            return ''  # No attribution if no data
-        
-        attribution_parts = []
-        
-        # Author
-        if cleaned_data.get('author'):
-            attribution_parts.append(f'<p style="margin: 8px 0;"><strong>👤 Autor Original:</strong> {cleaned_data["author"]}</p>')
-        
-        # Date
-        if cleaned_data.get('published_at'):
-            try:
-                date_obj = datetime.fromisoformat(cleaned_data['published_at'].replace('Z', '+00:00'))
-                months_pt = {
-                    1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril',
-                    5: 'maio', 6: 'junho', 7: 'julho', 8: 'agosto',
-                    9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
-                }
-                formatted_date = f"{date_obj.day} de {months_pt[date_obj.month]} de {date_obj.year}"
-                attribution_parts.append(f'<p style="margin: 8px 0;"><strong>📅 Publicado em:</strong> {formatted_date}</p>')
-            except:
-                pass
-        
-        # Reading time
-        if cleaned_data.get('reading_time'):
-            attribution_parts.append(f'<p style="margin: 8px 0;"><strong>⏱️ Tempo de Leitura:</strong> {cleaned_data["reading_time"]} minutos</p>')
-        
-        # Claps
-        if cleaned_data.get('claps'):
-            attribution_parts.append(f'<p style="margin: 8px 0;"><strong>👏 Claps no Medium:</strong> {cleaned_data["claps"]:,}</p>')
-        
-        # Only create the attribution box if we have data to show
-        if attribution_parts:
-            attribution = f"""
-            <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h4 style="margin-top: 0; color: #333; font-size: 18px;">📊 Sobre o Artigo Original</h4>
-                {''.join(attribution_parts)}
-            </div>
-            """
-            return attribution
-        
+        # Removed attribution section - content is presented as native Demandei content
         return ''
     
     def _prepare_tags(self, tags: List[str]) -> List[int]:

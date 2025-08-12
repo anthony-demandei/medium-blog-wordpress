@@ -199,17 +199,7 @@ class ContentProcessor:
         formatted_html = f'''
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 8px; margin: 20px 0;">
             <div style="background: #1e1e1e; border-radius: 6px; padding: 0; overflow: hidden;">
-                <div style="background: #2d2d2d; padding: 8px 15px; border-bottom: 1px solid #3e3e3e; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #a0a0a0; font-size: 12px; font-family: monospace;">
-                        <i style="display: inline-block; width: 10px; height: 10px; background: #ff5f56; border-radius: 50%; margin-right: 5px;"></i>
-                        <i style="display: inline-block; width: 10px; height: 10px; background: #ffbd2e; border-radius: 50%; margin-right: 5px;"></i>
-                        <i style="display: inline-block; width: 10px; height: 10px; background: #27c93f; border-radius: 50%; margin-right: 10px;"></i>
-                        {language.upper()}
-                    </span>
-                    <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" style="background: #3e3e3e; color: #a0a0a0; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
-                        📋 Copiar
-                    </button>
-                </div>
+                <div style="background: #2d2d2d; padding: 8px 15px; border-bottom: 1px solid #3e3e3e; display: flex; justify-content: space-between; align-items: center;"><span style="color: #a0a0a0; font-size: 12px; font-family: monospace;"><i style="display: inline-block; width: 10px; height: 10px; background: #ff5f56; border-radius: 50%; margin-right: 5px;"></i><i style="display: inline-block; width: 10px; height: 10px; background: #ffbd2e; border-radius: 50%; margin-right: 5px;"></i><i style="display: inline-block; width: 10px; height: 10px; background: #27c93f; border-radius: 50%; margin-right: 10px;"></i>{language.upper()}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" style="background: #3e3e3e; color: #a0a0a0; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">📋 Copiar</button></div>
                 <pre style="margin: 0; padding: 15px; overflow-x: auto; background: #1e1e1e;"><code style="color: #d4d4d4; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5;">{code_content}</code></pre>
             </div>
         </div>
