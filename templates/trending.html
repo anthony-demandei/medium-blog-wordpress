@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Trending Articles - Medium to WordPress{% endblock %}
+
+{% block extra_css %}
+<style>
+    .trending-header {
+        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+        padding: 40px 0;
+        margin-bottom: 30px;
+        border-radius: 10px;
+        color: white;
+    }
+    
+    .mode-selector {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 20px;
+    }
+    
+    .mode-btn {
+        padding: 8px 20px;
+        border: 2px solid white;
+        background: transparent;
+        color: white;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .mode-btn:hover, .mode-btn.active {
+        background: white;
+        color: #ff6b6b;
+    }
+    
+    .tag-selector {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    
+    .tag-pill {
+        padding: 5px 15px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .tag-pill:hover, .tag-pill.active {
+        background: white;
+        color: #4ecdc4;
+    }
+    
+    .article-card {
+        transition: transform 0.2s;
+        cursor: pointer;
+        height: 100%;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .trending-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+    }
+    
+    .cover-image {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    .author-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .author-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="trending-header">
+    <div class="container">
+        <h2 class="text-center mb-4">🔥 Trending Articles</h2>
+        
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <button class="mode-btn {% if mode == 'hot' %}active{% endif %}" onclick="changeMode('hot')">
+                🔥 Hot
+            </button>
+            <button class="mode-btn {% if mode == 'new' %}active{% endif %}" onclick="changeMode('new')">
+                ✨ New
+            </button>
+            <button class="mode-btn {% if mode == 'top_week' %}active{% endif %}" onclick="changeMode('top_week')">
+                📅 Top Week
+            </button>
+            <button class="mode-btn {% if mode == 'top_month' %}active{% endif %}" onclick="changeMode('top_month')">
+                📆 Top Month
+            </button>
+            <button class="mode-btn {% if mode == 'top_year' %}active{% endif %}" onclick="changeMode('top_year')">
+                🎯 Top Year
+            </button>
+            <button class="mode-btn {% if mode == 'top_all_time' %}active{% endif %}" onclick="changeMode('top_all_time')">
+                👑 All Time
+            </button>
+        </div>
+        
+        <!-- Tag Selector -->
+        <div class="tag-selector">
+            <span class="tag-pill {% if tag == 'programming' %}active{% endif %}" onclick="changeTag('programming')">
+                Programming
+            </span>
+            <span class="tag-pill {% if tag == 'artificial-intelligence' %}active{% endif %}" onclick="changeTag('artificial-intelligence')">
+                AI
+            </span>
+            <span class="tag-pill {% if tag == 'javascript' %}active{% endif %}" onclick="changeTag('javascript')">
+                JavaScript
+            </span>
+            <span class="tag-pill {% if tag == 'python' %}active{% endif %}" onclick="changeTag('python')">
+                Python
+            </span>
+            <span class="tag-pill {% if tag == 'react' %}active{% endif %}" onclick="changeTag('react')">
+                React
+            </span>
+            <span class="tag-pill {% if tag == 'nodejs' %}active{% endif %}" onclick="changeTag('nodejs')">
+                Node.js
+            </span>
+            <span class="tag-pill {% if tag == 'data-science' %}active{% endif %}" onclick="changeTag('data-science')">
+                Data Science
+            </span>
+            <span class="tag-pill {% if tag == 'machine-learning' %}active{% endif %}" onclick="changeTag('machine-learning')">
+                Machine Learning
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% if articles %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>{{ articles|length }} trending articles</h4>
+            <a href="/search" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i> Search Articles
+            </a>
+        </div>
+        
+        <div class="row">
+            {% for article in articles %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card article-card" onclick="viewArticle('{{ article.id }}')">
+                        <!-- Trending Badge -->
+                        <span class="trending-badge badge bg-danger">
+                            {% if mode == 'hot' %}
+                                🔥 HOT
+                            {% elif mode == 'new' %}
+                                ✨ NEW
+                            {% else %}
+                                👑 TOP
+                            {% endif %}
+                        </span>
+                        
+                        {% if article.image_url %}
+                            <img src="{{ article.image_url }}" class="card-img-top cover-image" alt="{{ article.title }}">
+                        {% else %}
+                            <div class="cover-image bg-gradient d-flex align-items-center justify-content-center">
+                                <i class="bi bi-file-text text-white" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{ article.title[:60] }}{% if article.title|length > 60 %}...{% endif %}
+                            </h5>
+                            
+                            {% if article.subtitle %}
+                                <p class="card-text text-muted small">
+                                    {{ article.subtitle[:100] }}{% if article.subtitle|length > 100 %}...{% endif %}
+                                </p>
+                            {% endif %}
+                            
+                            <!-- Tags -->
+                            <div class="mb-2">
+                                {% if article.tags %}
+                                    {% for tag in article.tags[:3] %}
+                                        <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ tag }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Stats -->
+                            <div class="d-flex justify-content-between align-items-center small text-muted">
+                                <span><i class="bi bi-hand-thumbs-up"></i> {{ article.claps|default(0) }}</span>
+                                <span><i class="bi bi-clock"></i> {{ article.reading_time|default(0) }} min</span>
+                                <span><i class="bi bi-chat"></i> {{ article.responses_count|default(0) }}</span>
+                            </div>
+                            
+                            <!-- Author -->
+                            <div class="author-info small text-muted mt-2">
+                                <i class="bi bi-person-circle"></i>
+                                <span>{{ article.author[:30] if article.author else 'Unknown' }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); translateArticle('{{ article.id }}')">
+                                    <i class="bi bi-translate"></i> Translate
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); compareArticle('{{ article.id }}')">
+                                    <i class="bi bi-layout-split"></i> View
+                                </button>
+                                <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();">
+                                    <i class="bi bi-box-arrow-up-right"></i> Original
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> No trending articles found. Try selecting a different mode or tag.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 mb-0">Processing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function changeMode(newMode) {
+    window.location.href = `/trending?tag={{ tag }}&mode=${newMode}`;
+}
+
+function changeTag(newTag) {
+    window.location.href = `/trending?tag=${newTag}&mode={{ mode }}`;
+}
+
+function viewArticle(articleId) {
+    window.location.href = `/compare/${articleId}`;
+}
+
+function compareArticle(articleId) {
+    window.location.href = `/compare/${articleId}`;
+}
+
+function translateArticle(articleId) {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    fetch(`/api/translate/${articleId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            modal.hide();
+            if (data.success) {
+                showAlert('Article translated successfully!', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            modal.hide();
+            showAlert('Error translating article', 'danger');
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

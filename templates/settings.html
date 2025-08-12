@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações - Medium to WordPress{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Configurações do Sistema</h2>
+        
+        <form id="settingsForm" method="POST" action="/settings/save">
+            <!-- Medium API Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-medium"></i> Configuração API Medium (RapidAPI)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="rapidapi_key" class="form-label">RapidAPI Key *</label>
+                                <input type="password" class="form-control" id="rapidapi_key" name="rapidapi_key" 
+                                       value="{{ settings.get('medium_api', {}).get('rapidapi_key', '') }}" required>
+                                <small class="form-text text-muted">Obtenha em rapidapi.com</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="rapidapi_host" class="form-label">RapidAPI Host</label>
+                                <input type="text" class="form-control" id="rapidapi_host" name="rapidapi_host" 
+                                       value="{{ settings.get('medium_api', {}).get('rapidapi_host', 'medium2.p.rapidapi.com') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WordPress Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-wordpress"></i> Configuração WordPress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="wordpress_url" class="form-label">URL do WordPress *</label>
+                                <input type="url" class="form-control" id="wordpress_url" name="wordpress_url" 
+                                       value="{{ settings.get('wordpress', {}).get('url', '') }}" required>
+                                <small class="form-text text-muted">Ex: https://seu-site.com</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="wordpress_username" class="form-label">Usuário WordPress *</label>
+                                <input type="text" class="form-control" id="wordpress_username" name="wordpress_username" 
+                                       value="{{ settings.get('wordpress', {}).get('username', '') }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="wordpress_password" class="form-label">Application Password *</label>
+                                <input type="password" class="form-control" id="wordpress_password" name="wordpress_password" 
+                                       value="{{ settings.get('wordpress', {}).get('password', '') }}" required>
+                                <small class="form-text text-muted">Gere no painel do WordPress</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="author_name" class="form-label">Nome do Autor</label>
+                                <input type="text" class="form-control" id="author_name" name="author_name" 
+                                       value="{{ settings.get('wordpress', {}).get('author_name', 'Demandei') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="default_category" class="form-label">Categoria Padrão</label>
+                                <input type="text" class="form-control" id="default_category" name="default_category" 
+                                       value="{{ settings.get('wordpress', {}).get('default_category', 'Technology') }}">
+                                <small class="form-text text-muted">Será criada se não existir</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="post_status" class="form-label">Status dos Posts</label>
+                                <select class="form-control" id="post_status" name="post_status">
+                                    <option value="draft" {% if settings.get('wordpress', {}).get('post_status') == 'draft' %}selected{% endif %}>Rascunho</option>
+                                    <option value="publish" {% if settings.get('wordpress', {}).get('post_status') == 'publish' %}selected{% endif %}>Publicar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Gemini Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-translate"></i> Configuração Google Gemini (Tradução)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="gemini_key" class="form-label">Gemini API Key</label>
+                                <input type="password" class="form-control" id="gemini_key" name="gemini_key" 
+                                       value="{{ settings.get('gemini', {}).get('api_key', '') }}">
+                                <small class="form-text text-muted">Opcional - para tradução automática</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tradução Automática</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="auto_translate" name="auto_translate" 
+                                           {% if settings.get('content', {}).get('auto_translate', True) %}checked{% endif %}>
+                                    <label class="form-check-label" for="auto_translate">
+                                        Traduzir artigos para português
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-search"></i> Configuração de Busca</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="keywords" class="form-label">Palavras-chave de Busca *</label>
+                                <textarea class="form-control" id="keywords" name="keywords" rows="3" required>{{ ','.join(settings.get('search', {}).get('keywords', [])) }}</textarea>
+                                <small class="form-text text-muted">Separe por vírgulas. Ex: python,javascript,react,AI</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="max_articles" class="form-label">Máximo de Artigos por Execução</label>
+                                <input type="number" class="form-control" id="max_articles" name="max_articles" 
+                                       value="{{ settings.get('search', {}).get('max_articles', 2) }}" min="1" max="10">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="language_preference" class="form-label">Preferência de Idioma</label>
+                                <select class="form-control" id="language_preference" name="language_preference">
+                                    <option value="both" {% if settings.get('search', {}).get('language_preference') == 'both' %}selected{% endif %}>Ambos</option>
+                                    <option value="pt" {% if settings.get('search', {}).get('language_preference') == 'pt' %}selected{% endif %}>Português</option>
+                                    <option value="en" {% if settings.get('search', {}).get('language_preference') == 'en' %}selected{% endif %}>Inglês</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="recent_days" class="form-label">Dias Recentes</label>
+                                <input type="number" class="form-control" id="recent_days" name="recent_days" 
+                                       value="{{ settings.get('search', {}).get('recent_days', 30) }}" min="1" max="365">
+                                <small class="form-text text-muted">Buscar artigos dos últimos X dias</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation Control -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> Controle de Automação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="automation_toggle" 
+                                       {% if automation_enabled %}checked{% endif %} onchange="toggleAutomation(this)">
+                                <label class="form-check-label" for="automation_toggle">
+                                    <strong>Automação Ativada</strong>
+                                    <small class="d-block text-muted">
+                                        Quando ativada, o sistema buscará e publicará artigos automaticamente.
+                                        Quando desativada, apenas busca manual será permitida.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock"></i> Configuração de Agendamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="schedule_hour" class="form-label">Hora</label>
+                                <input type="number" class="form-control" id="schedule_hour" name="schedule_hour" 
+                                       value="{{ settings.get('schedule', {}).get('hour', 8) }}" min="0" max="23">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="schedule_minute" class="form-label">Minuto</label>
+                                <input type="number" class="form-control" id="schedule_minute" name="schedule_minute" 
+                                       value="{{ settings.get('schedule', {}).get('minute', 0) }}" min="0" max="59">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Fuso Horário</label>
+                                <select class="form-control" id="timezone" name="timezone">
+                                    <option value="America/Sao_Paulo" {% if settings.get('schedule', {}).get('timezone') == 'America/Sao_Paulo' %}selected{% endif %}>São Paulo</option>
+                                    <option value="America/New_York" {% if settings.get('schedule', {}).get('timezone') == 'America/New_York' %}selected{% endif %}>New York</option>
+                                    <option value="Europe/London" {% if settings.get('schedule', {}).get('timezone') == 'Europe/London' %}selected{% endif %}>London</option>
+                                    <option value="Asia/Tokyo" {% if settings.get('schedule', {}).get('timezone') == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="schedule_enabled" name="schedule_enabled" 
+                                       {% if settings.get('schedule', {}).get('enabled', True) %}checked{% endif %}>
+                                <label class="form-check-label" for="schedule_enabled">
+                                    Ativar agendamento automático
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Salvar Configurações
+                    </button>
+                    <button type="button" class="btn btn-success ms-2" onclick="testConnections()">
+                        <i class="bi bi-wifi"></i> Testar Conexões
+                    </button>
+                    <button type="button" class="btn btn-warning ms-2" onclick="resetToDefaults()">
+                        <i class="bi bi-arrow-clockwise"></i> Restaurar Padrões
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Connection Test Modal -->
+<div class="modal fade" id="testModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Teste de Conexão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="testResults"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function testConnections() {
+    const modal = new bootstrap.Modal(document.getElementById('testModal'));
+    const resultsDiv = document.getElementById('testResults');
+    
+    resultsDiv.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">Testando...</span></div>';
+    modal.show();
+    
+    fetch('/test-connection', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            let html = '<ul class="list-group">';
+            html += `<li class="list-group-item">Medium API: ${data.medium ? '✅ Conectado' : '❌ Falhou'}</li>`;
+            html += `<li class="list-group-item">WordPress: ${data.wordpress ? '✅ Conectado' : '❌ Falhou'}</li>`;
+            html += '</ul>';
+            resultsDiv.innerHTML = html;
+        })
+        .catch(error => {
+            resultsDiv.innerHTML = '<div class="alert alert-danger">Erro ao testar conexões</div>';
+        });
+}
+
+function resetToDefaults() {
+    if (confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
+        fetch('/settings/reset', { method: 'POST' })
+            .then(() => {
+                window.location.reload();
+            });
+    }
+}
+
+function toggleAutomation(checkbox) {
+    const enabled = checkbox.checked;
+    
+    fetch('/api/automation/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enabled: enabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const message = enabled ? 'Automação ativada' : 'Automação desativada';
+            showAlert(message, 'success');
+        } else {
+            checkbox.checked = !enabled; // Revert on error
+            showAlert('Erro ao alterar automação', 'danger');
+        }
+    })
+    .catch(error => {
+        checkbox.checked = !enabled; // Revert on error
+        showAlert('Erro ao alterar automação', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

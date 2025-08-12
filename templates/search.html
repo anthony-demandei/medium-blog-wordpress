@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar Artigos - Medium to WordPress{% endblock %}
+
+{% block extra_css %}
+<style>
+    .article-card {
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .cache-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .cover-image {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .search-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 0;
+        margin-bottom: 30px;
+        border-radius: 10px;
+    }
+    .search-box {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .tag-badge {
+        font-size: 0.75rem;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <div class="container">
+        <h2 class="text-white text-center mb-4">🔍 Buscar Artigos no Medium</h2>
+        <div class="search-box">
+            <form id="searchForm" method="GET" action="/search">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-lg" 
+                           id="query" name="query" 
+                           placeholder="Digite palavras-chave (ex: python, AI, react...)"
+                           value="{{ query }}" required>
+                    <button class="btn btn-light btn-lg" type="submit">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Fluxo Passo a Passo -->
+        <div class="text-center mt-4">
+            <div class="d-flex justify-content-center align-items-center text-white">
+                <div class="text-center">
+                    <div class="badge bg-white text-dark fs-5 mb-2">1</div>
+                    <div class="small">Buscar</div>
+                </div>
+                <i class="bi bi-arrow-right mx-3"></i>
+                <div class="text-center">
+                    <div class="badge bg-white text-dark fs-5 mb-2">2</div>
+                    <div class="small">Selecionar</div>
+                </div>
+                <i class="bi bi-arrow-right mx-3"></i>
+                <div class="text-center">
+                    <div class="badge bg-white text-dark fs-5 mb-2">3</div>
+                    <div class="small">Traduzir</div>
+                </div>
+                <i class="bi bi-arrow-right mx-3"></i>
+                <div class="text-center">
+                    <div class="badge bg-white text-dark fs-5 mb-2">4</div>
+                    <div class="small">Publicar</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% if articles %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>{{ articles|length }} artigos encontrados</h4>
+            <button class="btn btn-outline-secondary" onclick="clearCache()">
+                <i class="bi bi-trash"></i> Limpar Cache Expirado
+            </button>
+        </div>
+        
+        <div class="row">
+            {% for article in articles %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card article-card h-100" onclick="viewArticle('{{ article.medium_id }}')">
+                        {% if article.cover_image %}
+                            <img src="{{ article.cover_image }}" class="card-img-top cover-image" alt="{{ article.original_title }}">
+                        {% else %}
+                            <div class="cover-image bg-secondary d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image text-white" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+                        
+                        {% if article.is_translated %}
+                            <span class="cache-badge badge bg-success">
+                                <i class="bi bi-translate"></i> Traduzido
+                            </span>
+                        {% elif article.cached_at %}
+                            <span class="cache-badge badge bg-info">
+                                <i class="bi bi-cloud-check"></i> Em Cache
+                            </span>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">{{ article.original_title[:60] }}{% if article.original_title|length > 60 %}...{% endif %}</h5>
+                            <p class="card-text text-muted small">
+                                {{ article.original_subtitle[:100] if article.original_subtitle else '' }}{% if article.original_subtitle and article.original_subtitle|length > 100 %}...{% endif %}
+                            </p>
+                            
+                            <div class="mb-2">
+                                {% if article.tags %}
+                                    {% for tag in article.tags[:3] %}
+                                        <span class="badge bg-secondary tag-badge">{{ tag }}</span>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center small text-muted">
+                                <span><i class="bi bi-person"></i> {{ article.author }}</span>
+                                <span><i class="bi bi-clock"></i> {{ article.reading_time }} min</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center small text-muted mt-1">
+                                <span><i class="bi bi-hand-thumbs-up"></i> {{ article.claps|default(0) }}</span>
+                                {% if article.expires_at %}
+                                    <span title="Cache expira em {{ article.expires_at }}">
+                                        <i class="bi bi-hourglass-split"></i> Cache: {{ article.expires_at[:10] }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100" role="group">
+                                {% if article.is_translated %}
+                                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); publishArticle('{{ article.medium_id }}')">
+                                        <i class="bi bi-send"></i> Publicar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); compareArticle('{{ article.medium_id }}')">
+                                        <i class="bi bi-layout-split"></i> Ver
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); translateArticle('{{ article.medium_id }}')">
+                                        <i class="bi bi-translate"></i> Traduzir
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); compareArticle('{{ article.medium_id }}')">
+                                        <i class="bi bi-layout-split"></i> Ver
+                                    </button>
+                                {% endif %}
+                                <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();">
+                                    <i class="bi bi-box-arrow-up-right"></i> Original
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% elif query %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> Nenhum artigo encontrado para "{{ query }}". Tente outras palavras-chave.
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-search" style="font-size: 4rem; color: #ccc;"></i>
+            <h4 class="mt-3 text-muted">Digite palavras-chave para buscar artigos</h4>
+            <p class="text-muted">Sugestões: python, javascript, AI, machine learning, react, docker</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2 mb-0">Processando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewArticle(mediumId) {
+    window.location.href = `/compare/${mediumId}`;
+}
+
+function compareArticle(mediumId) {
+    window.location.href = `/compare/${mediumId}`;
+}
+
+function translateArticle(mediumId) {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    fetch(`/api/translate/${mediumId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            modal.hide();
+            if (data.success) {
+                showAlert('Artigo traduzido com sucesso! Agora você pode publicá-lo.', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('Erro ao traduzir: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            modal.hide();
+            showAlert('Erro ao traduzir artigo', 'danger');
+        });
+}
+
+function publishArticle(mediumId) {
+    if (!confirm('Publicar este artigo no WordPress?')) {
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    fetch(`/api/publish/${mediumId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            modal.hide();
+            if (data.success) {
+                showAlert('Artigo publicado com sucesso!', 'success');
+                if (data.wordpress_url) {
+                    setTimeout(() => {
+                        if (confirm('Artigo publicado! Deseja visualizar no WordPress?')) {
+                            window.open(data.wordpress_url, '_blank');
+                        }
+                    }, 500);
+                }
+            } else {
+                showAlert('Erro ao publicar: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            modal.hide();
+            showAlert('Erro ao publicar artigo', 'danger');
+        });
+}
+
+function clearCache() {
+    if (confirm('Limpar cache expirado?')) {
+        fetch('/api/cache/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                showAlert(`${data.count} itens removidos do cache`, 'info');
+                if (data.count > 0) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}
