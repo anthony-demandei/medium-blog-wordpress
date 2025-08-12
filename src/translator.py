@@ -224,6 +224,76 @@ class GeminiTranslator:
         
         return text
     
+    def _translate_title(self, title: str, source_lang: str, target_lang: str) -> str:
+        """Translate title with specific instructions for clean, concise titles"""
+        if not title or len(title.strip()) < 3:
+            return title
+        
+        try:
+            lang_map = {
+                'en': 'English',
+                'pt': 'Portuguese',
+                'es': 'Spanish',
+                'fr': 'French'
+            }
+            
+            source_language = lang_map.get(source_lang, 'English')
+            target_language = lang_map.get(target_lang, 'Portuguese')
+            
+            prompt = f"""
+            Você é um especialista em tradução de títulos para artigos técnicos.
+            
+            INSTRUÇÕES ESPECÍFICAS PARA TÍTULOS:
+            1. Traduza APENAS o título de {source_language} para {target_language} brasileiro
+            2. Mantenha o título CONCISO e DIRETO (máximo 80 caracteres)
+            3. Use terceira pessoa (sem "você", "seu", "sua")
+            4. Preserve números, anos, e termos técnicos exatamente
+            5. NÃO adicione subtítulos, descrições ou explicações
+            6. NÃO use dois pontos (:) desnecessários
+            7. Foque na ideia principal do título
+            8. Mantenha o mesmo tom do original (informativo, técnico, etc.)
+            
+            EXEMPLOS:
+            ❌ "10 Repositórios Python para 2025: Para Desenvolvedores que Buscam..."
+            ✅ "10 Repositórios Python Essenciais para 2025"
+            
+            ❌ "Como Configurar Docker: Um Guia Completo para Iniciantes"
+            ✅ "Como Configurar Docker: Guia Completo"
+            
+            TÍTULO ORIGINAL:
+            {title}
+            
+            RESPOSTA (apenas o título traduzido):
+            """
+            
+            response = self.model.generate_content(prompt)
+            translated_title = response.text.strip()
+            
+            # Clean up any extra text that might have been added
+            translated_title = self._clean_title(translated_title)
+            
+            return translated_title
+            
+        except Exception as e:
+            logger.error(f"Title translation error: {e}")
+            return title
+    
+    def _clean_title(self, title: str) -> str:
+        """Clean translated title removing unwanted additions"""
+        # Remove common prefixes that might be added
+        title = re.sub(r'^(Título traduzido:|Resposta:|Here is|Aqui está).*?:', '', title, flags=re.IGNORECASE)
+        
+        # Remove quotes if the entire title is wrapped in them
+        title = title.strip()
+        if (title.startswith('"') and title.endswith('"')) or (title.startswith("'") and title.endswith("'")):
+            title = title[1:-1]
+        
+        # Limit title length for WordPress compatibility
+        if len(title) > 100:
+            title = title[:97] + '...'
+        
+        return title.strip()
+    
     def translate_article(self, article: Dict, target_lang: str = 'pt') -> Dict:
         """Translate entire article preserving structure"""
         if not self.enabled:
@@ -238,9 +308,9 @@ class GeminiTranslator:
                 logger.info(f"Article already in {target_lang}, skipping translation")
                 return article
             
-            # Translate title
+            # Translate title with specific instruction for clean titles
             if article.get('title'):
-                article['title'] = self._translate_text(
+                article['title'] = self._translate_title(
                     article['title'], 
                     source_lang, 
                     target_lang
