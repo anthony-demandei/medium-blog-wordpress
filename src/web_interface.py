@@ -235,12 +235,28 @@ class WebInterface:
             query = request.args.get('query', '')
             articles = []
             
-            if query and self.cache_manager:
-                # Search and cache articles
-                articles = self.cache_manager.search_and_cache(query, limit=12)
-            elif not query:
-                # Show all cached articles if no query
+            if query:
+                # Only make API request if there's a new search query
+                if self.cache_manager and self.db.can_make_api_request(1):
+                    # Search and cache articles
+                    articles = self.cache_manager.search_and_cache(query, limit=12)
+                    flash(f'Found {len(articles)} articles for "{query}"', 'success')
+                else:
+                    # API limit reached, search in cached articles only
+                    articles = self.db.get_all_cached_articles()
+                    # Filter cached articles by query
+                    filtered = []
+                    for article in articles:
+                        title = (article.get('original_title') or '').lower()
+                        subtitle = (article.get('original_subtitle') or '').lower()
+                        if query.lower() in title or query.lower() in subtitle:
+                            filtered.append(article)
+                    articles = filtered
+                    flash(f'API limit reached. Showing {len(articles)} cached results', 'info')
+            else:
+                # No query - show all cached articles without API request
                 articles = self.db.get_all_cached_articles()
+                flash(f'Showing {len(articles)} cached articles (no API request)', 'info')
             
             return render_template('search.html',
                                  query=query,
@@ -251,13 +267,29 @@ class WebInterface:
             tag = request.args.get('tag', 'programming')
             mode = request.args.get('mode', 'hot')
             
-            articles = []
-            if self.medium_api:
-                articles = self.medium_api.get_trending_articles(tag=tag, mode=mode, limit=12)
-                # Cache trending articles
-                if self.cache_manager:
-                    for article in articles:
-                        self.cache_manager.cache_article(article)
+            # Create cache key for this specific request
+            cache_key = f"trending_{tag}_{mode}"
+            
+            # First check if we have cached data
+            articles = self.db.get_trending_cache(cache_key)
+            
+            if articles is None:
+                # No cache or expired, fetch from API
+                if self.medium_api and self.db.can_make_api_request(1):
+                    articles = self.medium_api.get_trending_articles(tag=tag, mode=mode, limit=12)
+                    # Save to trending cache for 24 hours
+                    if articles:
+                        self.db.save_trending_cache(cache_key, articles)
+                    # Also cache individual articles
+                    if self.cache_manager:
+                        for article in articles:
+                            self.cache_manager.cache_article(article)
+                else:
+                    articles = []
+                    flash('API limit reached or Medium API not available', 'warning')
+            else:
+                # Using cached data - no API request made
+                flash(f'Using cached trending data (saves API requests)', 'info')
             
             return render_template('trending.html',
                                  tag=tag,

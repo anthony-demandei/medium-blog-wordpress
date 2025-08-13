@@ -120,16 +120,9 @@ class WordPressAPI:
         # Process content through ContentProcessor
         processed_content = ContentProcessor.process_markdown_to_html(content, content_format)
         
-        # Add featured image if available
+        # Featured image will be handled by WordPress automatically
+        # Remove duplicate image from content
         featured_image = ''
-        if article.get('image_url'):
-            featured_image = f'''
-            <div style="margin-bottom: 30px; text-align: center;">
-                <img src="{article["image_url"]}" 
-                     alt="{article.get("title", "")}" 
-                     style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            </div>
-            '''
         
         # Add attribution header with cleaned data
         attribution = self._create_attribution(article)

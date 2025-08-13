@@ -303,6 +303,9 @@ class GeminiTranslator:
             # Clean up any extra text that might have been added
             translated_title = self._clean_title(translated_title)
             
+            # Remove hyphens from title
+            translated_title = self._remove_hyphens(translated_title)
+            
             return translated_title
             
         except Exception as e:

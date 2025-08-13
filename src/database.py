@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, Column, String, Integer, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime, timedelta
+from typing import List, Dict, Optional
 import logging
 import os
 import json
@@ -60,6 +61,24 @@ class SyncLog(Base):
             'errors': self.errors,
             'status': self.status
         }
+
+class TrendingCache(Base):
+    __tablename__ = 'trending_cache'
+    
+    id = Column(Integer, primary_key=True)
+    cache_key = Column(String(255), unique=True, nullable=False)  # e.g., "trending_programming_hot"
+    articles_data = Column(JSON)  # Serialized articles list
+    cached_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.expires_at:
+            # Trending cache expires after 24 hours
+            self.expires_at = datetime.utcnow() + timedelta(hours=24)
+    
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
 
 class ArticleCache(Base):
     __tablename__ = 'article_cache'
@@ -500,3 +519,93 @@ class Database:
                 'warning_level': current.requests_used > 2000 if current else False,
                 'critical_level': current.requests_used > 2400 if current else False
             }
+    
+    def get_trending_cache(self, cache_key: str) -> Optional[List[Dict]]:
+        """Get trending articles from cache if not expired"""
+        with Session(self.engine) as session:
+            try:
+                cache = session.query(TrendingCache).filter_by(cache_key=cache_key).first()
+                if cache and not cache.is_expired():
+                    logger.info(f"Trending cache hit for {cache_key}")
+                    return cache.articles_data
+                elif cache and cache.is_expired():
+                    logger.info(f"Trending cache expired for {cache_key}")
+                    session.delete(cache)
+                    session.commit()
+                return None
+            except Exception as e:
+                logger.error(f"Error getting trending cache: {e}")
+                return None
+    
+    def save_trending_cache(self, cache_key: str, articles: List[Dict]) -> bool:
+        """Save trending articles to cache"""
+        with Session(self.engine) as session:
+            try:
+                # Remove old cache if exists
+                old_cache = session.query(TrendingCache).filter_by(cache_key=cache_key).first()
+                if old_cache:
+                    session.delete(old_cache)
+                
+                # Create new cache entry
+                new_cache = TrendingCache(
+                    cache_key=cache_key,
+                    articles_data=articles
+                )
+                session.add(new_cache)
+                session.commit()
+                logger.info(f"Saved trending cache for {cache_key} with {len(articles)} articles")
+                return True
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error saving trending cache: {e}")
+                return False
+    
+    def clear_expired_trending_cache(self) -> int:
+        """Clear expired trending cache entries"""
+        with Session(self.engine) as session:
+            try:
+                expired = session.query(TrendingCache).filter(
+                    TrendingCache.expires_at < datetime.utcnow()
+                ).all()
+                count = len(expired)
+                for cache in expired:
+                    session.delete(cache)
+                session.commit()
+                logger.info(f"Cleared {count} expired trending cache entries")
+                return count
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error clearing expired trending cache: {e}")
+                return 0
+    
+    def clear_translated_cache(self, medium_id: str = None) -> int:
+        """Clear translated content from cache to force re-translation"""
+        with Session(self.engine) as session:
+            try:
+                if medium_id:
+                    # Clear specific article
+                    article = session.query(ArticleCache).filter_by(medium_id=medium_id).first()
+                    if article:
+                        article.translated_content = None
+                        article.translated_title = None
+                        article.translated_subtitle = None
+                        article.is_translated = False
+                        session.commit()
+                        logger.info(f"Cleared translated cache for article {medium_id}")
+                        return 1
+                    return 0
+                else:
+                    # Clear all translated content
+                    updated = session.query(ArticleCache).update({
+                        ArticleCache.translated_content: None,
+                        ArticleCache.translated_title: None,
+                        ArticleCache.translated_subtitle: None,
+                        ArticleCache.is_translated: False
+                    })
+                    session.commit()
+                    logger.info(f"Cleared translated cache for {updated} articles")
+                    return updated
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error clearing translated cache: {e}")
+                raise
