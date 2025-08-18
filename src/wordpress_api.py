@@ -109,7 +109,7 @@ class WordPressAPI:
             pass
         return categories
     
-    def create_post(self, article: Dict, category_name: str = 'Technology', status: str = 'draft') -> Optional[Dict]:
+    def create_post(self, article: Dict, category_name: str = 'Technology', status: str = 'draft', translator=None) -> Optional[Dict]:
         """Create a new WordPress post from Medium article"""
         try:
             # Get or create category
@@ -178,14 +178,36 @@ class WordPressAPI:
             }
         }
         
-        # Add featured image if available
+        # Add featured image if available or generate one
         image_url = article.get('image_url') or article.get('cover_image')
+        
         if image_url:
-            # Upload image to WordPress Media Library
+            # Upload existing image to WordPress Media Library
             media_id = self.upload_image_from_url(image_url, article.get('title', ''))
             if media_id:
                 post_data['featured_media'] = media_id
                 logger.info(f"Featured image set: {media_id}")
+        elif translator and hasattr(translator, 'generate_cover_image'):
+            # No image available, generate one
+            logger.info("No cover image found, generating one...")
+            image_bytes = translator.generate_cover_image(
+                title=article.get('title', 'Article'),
+                subtitle=article.get('subtitle', ''),
+                tags=article.get('tags', [])
+            )
+            
+            if image_bytes:
+                # Upload generated image
+                media_id = self.upload_image_bytes(
+                    image_bytes, 
+                    f"cover-{article.get('id', 'generated')}.png",
+                    article.get('title', '')
+                )
+                if media_id:
+                    post_data['featured_media'] = media_id
+                    logger.info(f"Generated featured image set: {media_id}")
+            else:
+                logger.warning("Failed to generate cover image")
         
         return post_data
     
@@ -212,6 +234,35 @@ class WordPressAPI:
         formatted_content += processed_content
         
         return formatted_content
+    
+    def upload_image_bytes(self, image_bytes: bytes, filename: str, alt_text: str = '') -> Optional[int]:
+        """Upload image bytes to WordPress Media Library"""
+        try:
+            # Prepare headers for upload
+            upload_headers = self.headers.copy()
+            upload_headers['Content-Type'] = 'image/png'
+            upload_headers['Content-Disposition'] = f'attachment; filename={filename}'
+            
+            # Upload to WordPress with timeout
+            logger.info(f"Uploading generated image: {filename}")
+            upload_response = requests.post(
+                f"{self.api_url}/media",
+                data=image_bytes,
+                headers=upload_headers,
+                timeout=30
+            )
+            
+            if upload_response.status_code == 201:
+                media = upload_response.json()
+                logger.info(f"Generated image uploaded successfully: {media.get('id')}")
+                return media.get('id')
+            else:
+                logger.error(f"Failed to upload generated image: {upload_response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error uploading generated image: {e}")
+            return None
     
     def upload_image_from_url(self, image_url: str, alt_text: str = '') -> Optional[int]:
         """Upload an image from URL to WordPress Media Library"""

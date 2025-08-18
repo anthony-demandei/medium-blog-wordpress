@@ -392,11 +392,12 @@ class WebInterface:
                 # Get post status from settings
                 post_status = self.settings.get('wordpress.post_status', 'draft')
                 
-                # Create WordPress post
+                # Create WordPress post (pass translator for image generation)
                 wordpress_result = self.wordpress_api.create_post(
                     article,
                     Config.CATEGORY_NAME,
-                    post_status
+                    post_status,
+                    translator=self.translator
                 )
                 
                 if wordpress_result:
@@ -466,11 +467,12 @@ class WebInterface:
                     # Get post status from settings
                     post_status = self.settings.get('wordpress.post_status', 'draft')
                     
-                    # Create WordPress post
+                    # Create WordPress post (pass translator for image generation)
                     wordpress_result = self.wordpress_api.create_post(
                         article,
                         Config.CATEGORY_NAME,
-                        post_status
+                        post_status,
+                        translator=self.translator
                     )
                     
                     if wordpress_result:

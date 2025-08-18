@@ -1,9 +1,13 @@
 import logging
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 import google.generativeai as genai
 from bs4 import BeautifulSoup
 import re
+import base64
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -394,6 +398,153 @@ class GeminiTranslator:
             title = title[:97] + '...'
         
         return title.strip()
+    
+    def generate_cover_image(self, title: str, subtitle: str = "", tags: list = None) -> Optional[bytes]:
+        """Generate a cover image for articles without one"""
+        try:
+            # Try to use Gemini 2.0 Flash experimental for image generation
+            try:
+                import google.genai as genai_new
+                client = genai_new.Client(api_key=self.api_key)
+                
+                # Create a prompt for image generation
+                prompt = f"""
+                Create a professional, modern blog cover image for an article about:
+                Title: {title}
+                Subtitle: {subtitle or 'Technology article'}
+                Topics: {', '.join(tags[:3]) if tags else 'technology, programming'}
+                
+                Style: Clean, minimalist, tech-focused, gradient background, abstract geometric shapes.
+                No text in the image. Professional blog header style.
+                """
+                
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash-exp",
+                    contents=prompt,
+                    config=genai_new.types.GenerateContentConfig(
+                        response_modalities=['IMAGE']
+                    )
+                )
+                
+                if response and response.candidates:
+                    for part in response.candidates[0].content.parts:
+                        if hasattr(part, 'image') and part.image:
+                            # Return image bytes
+                            return part.image.data
+                            
+            except Exception as e:
+                logger.warning(f"Gemini image generation failed: {e}, falling back to placeholder")
+            
+            # Fallback: Generate a placeholder image with Pillow
+            return self._generate_placeholder_image(title, subtitle, tags)
+            
+        except Exception as e:
+            logger.error(f"Image generation error: {e}")
+            return None
+    
+    def _generate_placeholder_image(self, title: str, subtitle: str = "", tags: list = None) -> bytes:
+        """Generate a placeholder image when API generation fails"""
+        # Image dimensions (WordPress featured image size)
+        width, height = 1200, 630
+        
+        # Create image with gradient background
+        img = Image.new('RGB', (width, height))
+        draw = ImageDraw.Draw(img)
+        
+        # Generate gradient based on category/tags
+        colors = [
+            ((102, 126, 234), (118, 75, 162)),  # Purple gradient
+            ((10, 132, 255), (48, 209, 88)),    # Blue-green gradient  
+            ((255, 159, 10), (255, 45, 85)),    # Orange-red gradient
+            ((50, 215, 75), (10, 132, 255)),    # Green-blue gradient
+            ((175, 82, 222), (255, 45, 85)),    # Purple-red gradient
+        ]
+        
+        # Select color based on content
+        color_index = hash(title) % len(colors)
+        start_color, end_color = colors[color_index]
+        
+        # Draw gradient background
+        for y in range(height):
+            ratio = y / height
+            r = int(start_color[0] * (1 - ratio) + end_color[0] * ratio)
+            g = int(start_color[1] * (1 - ratio) + end_color[1] * ratio)
+            b = int(start_color[2] * (1 - ratio) + end_color[2] * ratio)
+            draw.rectangle([(0, y), (width, y + 1)], fill=(r, g, b))
+        
+        # Add semi-transparent overlay
+        overlay = Image.new('RGBA', (width, height), (0, 0, 0, 60))
+        img.paste(overlay, (0, 0), overlay)
+        
+        # Add geometric shapes for visual interest
+        for _ in range(3):
+            x = random.randint(0, width)
+            y = random.randint(0, height)
+            size = random.randint(100, 300)
+            opacity = random.randint(10, 30)
+            shape_overlay = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+            shape_draw = ImageDraw.Draw(shape_overlay)
+            shape_draw.ellipse([x-size, y-size, x+size, y+size], fill=(255, 255, 255, opacity))
+            img = Image.alpha_composite(img.convert('RGBA'), shape_overlay).convert('RGB')
+        
+        # Try to use a font, fallback to default if not available
+        try:
+            # Try to use a system font
+            font_size = 48
+            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+            small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
+        except:
+            # Use default font
+            font = ImageFont.load_default()
+            small_font = font
+        
+        # Add title text
+        # Wrap text if too long
+        max_width = width - 100
+        words = title.split()
+        lines = []
+        current_line = []
+        
+        for word in words:
+            current_line.append(word)
+            test_line = ' '.join(current_line)
+            if draw.textlength(test_line, font=font) > max_width:
+                if len(current_line) > 1:
+                    current_line.pop()
+                    lines.append(' '.join(current_line))
+                    current_line = [word]
+                else:
+                    lines.append(test_line)
+                    current_line = []
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Draw title
+        y_text = height // 2 - (len(lines) * 30)
+        for line in lines[:3]:  # Max 3 lines
+            text_width = draw.textlength(line, font=font)
+            x_text = (width - text_width) // 2
+            # Draw shadow
+            draw.text((x_text + 2, y_text + 2), line, font=font, fill=(0, 0, 0, 128))
+            # Draw text
+            draw.text((x_text, y_text), line, font=font, fill=(255, 255, 255))
+            y_text += 60
+        
+        # Add subtitle if provided
+        if subtitle:
+            subtitle_width = draw.textlength(subtitle[:60], font=small_font)
+            x_subtitle = (width - subtitle_width) // 2
+            draw.text((x_subtitle, y_text + 20), subtitle[:60], font=small_font, fill=(255, 255, 255, 200))
+        
+        # Add watermark
+        watermark = "demandei.com.br"
+        watermark_width = draw.textlength(watermark, font=small_font)
+        draw.text((width - watermark_width - 20, height - 40), watermark, font=small_font, fill=(255, 255, 255, 128))
+        
+        # Convert to bytes
+        img_byte_array = BytesIO()
+        img.save(img_byte_array, format='PNG', optimize=True)
+        return img_byte_array.getvalue()
     
     def translate_article(self, article: Dict, target_lang: str = 'pt') -> Dict:
         """Translate entire article preserving structure"""
