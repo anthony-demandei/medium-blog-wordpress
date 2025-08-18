@@ -37,6 +37,78 @@ class WordPressAPI:
             logger.error(f"WordPress connection test failed: {e}")
             return False
     
+    def get_recent_posts(self, limit: int = 5) -> List[Dict]:
+        """Get recent posts from WordPress"""
+        try:
+            response = requests.get(
+                f"{self.api_url}/posts",
+                headers=self.headers,
+                params={
+                    'per_page': limit,
+                    'orderby': 'date',
+                    'order': 'desc',
+                    '_embed': True  # Include featured media and author info
+                }
+            )
+            
+            if response.status_code == 200:
+                posts = response.json()
+                formatted_posts = []
+                
+                for post in posts:
+                    formatted_post = {
+                        'id': post.get('id'),
+                        'title': post.get('title', {}).get('rendered', ''),
+                        'excerpt': post.get('excerpt', {}).get('rendered', ''),
+                        'date': post.get('date'),
+                        'link': post.get('link'),
+                        'author': self._get_author_name(post),
+                        'featured_image': self._get_featured_image(post),
+                        'categories': self._get_categories(post)
+                    }
+                    formatted_posts.append(formatted_post)
+                
+                return formatted_posts
+            else:
+                logger.error(f"Failed to fetch posts: {response.status_code}")
+                return []
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching WordPress posts: {e}")
+            return []
+    
+    def _get_author_name(self, post: Dict) -> str:
+        """Extract author name from embedded data"""
+        try:
+            if '_embedded' in post and 'author' in post['_embedded']:
+                return post['_embedded']['author'][0].get('name', 'Unknown')
+        except:
+            pass
+        return 'Unknown'
+    
+    def _get_featured_image(self, post: Dict) -> Optional[str]:
+        """Extract featured image URL from embedded data"""
+        try:
+            if '_embedded' in post and 'wp:featuredmedia' in post['_embedded']:
+                media = post['_embedded']['wp:featuredmedia'][0]
+                return media.get('source_url')
+        except:
+            pass
+        return None
+    
+    def _get_categories(self, post: Dict) -> List[str]:
+        """Extract category names from embedded data"""
+        categories = []
+        try:
+            if '_embedded' in post and 'wp:term' in post['_embedded']:
+                for term_type in post['_embedded']['wp:term']:
+                    for term in term_type:
+                        if term.get('taxonomy') == 'category':
+                            categories.append(term.get('name', ''))
+        except:
+            pass
+        return categories
+    
     def create_post(self, article: Dict, category_name: str = 'Technology', status: str = 'draft') -> Optional[Dict]:
         """Create a new WordPress post from Medium article"""
         try:
@@ -46,11 +118,13 @@ class WordPressAPI:
             # Prepare post content
             post_data = self._prepare_post_data(article, category_id, status)
             
-            # Create the post
+            # Create the post with timeout
+            logger.info("Creating WordPress post...")
             response = requests.post(
                 f"{self.api_url}/posts",
                 json=post_data,
-                headers=self.headers
+                headers=self.headers,
+                timeout=30
             )
             
             if response.status_code == 201:
@@ -105,10 +179,13 @@ class WordPressAPI:
         }
         
         # Add featured image if available
-        if article.get('image_url'):
-            # This would require uploading the image first
-            # For now, we'll embed it in the content
-            pass
+        image_url = article.get('image_url') or article.get('cover_image')
+        if image_url:
+            # Upload image to WordPress Media Library
+            media_id = self.upload_image_from_url(image_url, article.get('title', ''))
+            if media_id:
+                post_data['featured_media'] = media_id
+                logger.info(f"Featured image set: {media_id}")
         
         return post_data
     
@@ -120,84 +197,122 @@ class WordPressAPI:
         # Process content through ContentProcessor
         processed_content = ContentProcessor.process_markdown_to_html(content, content_format)
         
-        # Featured image will be handled by WordPress automatically
-        # Remove duplicate image from content
-        featured_image = ''
+        # Add initial space like WordPress posts
+        formatted_content = '<p>&nbsp;</p>\n'
         
-        # Add attribution header with cleaned data
-        attribution = self._create_attribution(article)
+        # Add subtitle if exists
+        subtitle = article.get('subtitle', '')
+        if subtitle and not subtitle.lower() in content.lower()[:200]:
+            formatted_content += f'<p style="font-size: 1.1em; color: #555; line-height: 1.6; margin-bottom: 25px;">{subtitle}</p>\n'
         
-        # Format the complete content
-        formatted_content = f"""
-        {featured_image}
+        # Add horizontal separator
+        formatted_content += '<hr />\n\n'
         
-        {attribution}
-        
-        <div style="margin: 30px 0; border-top: 2px solid #e0e0e0;"></div>
-        
-        {processed_content}
-        
-        <div style="margin: 30px 0; border-top: 2px solid #e0e0e0;"></div>
-        
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 10px; margin: 30px 0;">
-            <div style="background: white; padding: 20px; border-radius: 8px;">
-                <h4 style="margin-top: 0; color: #333;">💡 Sobre este artigo</h4>
-                <p style="color: #666;">Este conteúdo foi adaptado e traduzido para português brasileiro pela equipe <strong>Demandei</strong>, 
-                plataforma que conecta freelancers e empresas de tecnologia.</p>
-                <p style="margin-bottom: 0;">
-                    <a href="{article.get('url', '#')}" target="_blank" rel="noopener" 
-                       style="color: #667eea; text-decoration: none; font-weight: bold;">
-                       📖 Leia o artigo original no Medium →
-                    </a>
-                </p>
-            </div>
-        </div>
-        """
+        # Add the main content
+        formatted_content += processed_content
         
         return formatted_content
     
-    def _create_attribution(self, article: Dict) -> str:
-        """Create attribution section for the post"""
-        # Removed attribution section - content is presented as native Demandei content
-        return ''
+    def upload_image_from_url(self, image_url: str, alt_text: str = '') -> Optional[int]:
+        """Upload an image from URL to WordPress Media Library"""
+        try:
+            # Download image with timeout
+            logger.info(f"Downloading image from: {image_url[:50]}...")
+            response = requests.get(image_url, timeout=15)
+            if response.status_code != 200:
+                logger.error(f"Failed to download image: {image_url}")
+                return None
+            
+            # Get filename from URL
+            filename = image_url.split('/')[-1].split('?')[0]
+            if not filename or '.' not in filename:
+                filename = 'featured-image.jpg'
+            
+            # Prepare headers for upload
+            upload_headers = self.headers.copy()
+            upload_headers['Content-Type'] = 'image/jpeg'
+            upload_headers['Content-Disposition'] = f'attachment; filename={filename}'
+            
+            # Upload to WordPress with timeout
+            logger.info("Uploading image to WordPress...")
+            upload_response = requests.post(
+                f"{self.api_url}/media",
+                data=response.content,
+                headers=upload_headers,
+                timeout=30
+            )
+            
+            if upload_response.status_code == 201:
+                media = upload_response.json()
+                logger.info(f"Image uploaded successfully: {media.get('id')}")
+                return media.get('id')
+            else:
+                logger.error(f"Failed to upload image: {upload_response.status_code} - {upload_response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error uploading image: {e}")
+            return None
     
     def _prepare_tags(self, tags: List[str]) -> List[int]:
-        """Convert tag names to WordPress tag IDs"""
+        """Convert tag names to WordPress tag IDs with Portuguese translation"""
         tag_ids = []
         
-        for tag_name in tags[:5]:  # Limit to 5 tags
-            tag_id = self._get_or_create_tag(tag_name)
+        # Limit to 3 tags to speed up the process
+        for tag_name in tags[:3]:
+            # Translate tag to Portuguese if mapping exists
+            translated_tag = ContentProcessor.TAG_TRANSLATION_MAP.get(tag_name.lower(), tag_name)
+            
+            # Log translation for debugging
+            if translated_tag != tag_name:
+                logger.info(f"Translated tag: '{tag_name}' -> '{translated_tag}'")
+            
+            tag_id = self._get_or_create_tag(translated_tag)
             if tag_id:
                 tag_ids.append(tag_id)
+                
+            # Stop if we already have 3 tags
+            if len(tag_ids) >= 3:
+                break
         
+        logger.info(f"Prepared {len(tag_ids)} tags for WordPress")
         return tag_ids
     
     def _get_or_create_tag(self, tag_name: str) -> Optional[int]:
         """Get existing tag ID or create new tag"""
         try:
-            # Search for existing tag
+            # Search for existing tag with timeout
             response = requests.get(
                 f"{self.api_url}/tags",
                 headers=self.headers,
-                params={'search': tag_name, 'per_page': 1}
+                params={'search': tag_name, 'per_page': 1},
+                timeout=10
             )
             
             if response.status_code == 200:
                 tags = response.json()
                 if tags:
+                    logger.info(f"Found existing tag '{tag_name}': {tags[0].get('id')}")
                     return tags[0].get('id')
             
             # Create new tag if not found
+            logger.info(f"Creating new tag: {tag_name}")
             response = requests.post(
                 f"{self.api_url}/tags",
                 json={'name': tag_name},
-                headers=self.headers
+                headers=self.headers,
+                timeout=10
             )
             
             if response.status_code == 201:
                 tag = response.json()
+                logger.info(f"Tag created successfully: {tag_name} - ID: {tag.get('id')}")
                 return tag.get('id')
+            else:
+                logger.warning(f"Failed to create tag '{tag_name}': {response.status_code}")
             
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout while handling tag '{tag_name}'")
         except requests.exceptions.RequestException as e:
             logger.error(f"Error handling tag '{tag_name}': {e}")
         

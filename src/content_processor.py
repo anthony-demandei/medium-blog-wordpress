@@ -85,6 +85,105 @@ class ContentProcessor:
         'database': 'Banco de Dados'
     }
     
+    # Mapeamento de tags para português
+    TAG_TRANSLATION_MAP = {
+        # Programming Languages
+        'javascript': 'JavaScript',
+        'python': 'Python',
+        'java': 'Java',
+        'typescript': 'TypeScript',
+        'php': 'PHP',
+        'ruby': 'Ruby',
+        'golang': 'Go',
+        'rust': 'Rust',
+        'kotlin': 'Kotlin',
+        'swift': 'Swift',
+        'c++': 'C++',
+        'c#': 'C#',
+        
+        # Development
+        'programming': 'Programação',
+        'coding': 'Codificação',
+        'software-development': 'Desenvolvimento de Software',
+        'web-development': 'Desenvolvimento Web',
+        'mobile-development': 'Desenvolvimento Mobile',
+        'frontend': 'Frontend',
+        'backend': 'Backend',
+        'full-stack': 'Full Stack',
+        'api': 'API',
+        'rest-api': 'API REST',
+        'graphql': 'GraphQL',
+        
+        # Frameworks & Libraries
+        'react': 'React',
+        'angular': 'Angular',
+        'vue': 'Vue.js',
+        'nextjs': 'Next.js',
+        'nodejs': 'Node.js',
+        'express': 'Express.js',
+        'django': 'Django',
+        'flask': 'Flask',
+        'spring': 'Spring',
+        'laravel': 'Laravel',
+        'rails': 'Ruby on Rails',
+        
+        # DevOps & Cloud
+        'devops': 'DevOps',
+        'docker': 'Docker',
+        'kubernetes': 'Kubernetes',
+        'aws': 'AWS',
+        'azure': 'Azure',
+        'google-cloud': 'Google Cloud',
+        'cloud-computing': 'Computação em Nuvem',
+        'ci-cd': 'CI/CD',
+        'microservices': 'Microsserviços',
+        'serverless': 'Serverless',
+        
+        # Database
+        'database': 'Banco de Dados',
+        'sql': 'SQL',
+        'nosql': 'NoSQL',
+        'mongodb': 'MongoDB',
+        'postgresql': 'PostgreSQL',
+        'mysql': 'MySQL',
+        'redis': 'Redis',
+        
+        # AI & Data
+        'artificial-intelligence': 'Inteligência Artificial',
+        'ai': 'IA',
+        'machine-learning': 'Aprendizado de Máquina',
+        'deep-learning': 'Aprendizado Profundo',
+        'data-science': 'Ciência de Dados',
+        'data-analysis': 'Análise de Dados',
+        'big-data': 'Big Data',
+        'neural-networks': 'Redes Neurais',
+        'nlp': 'PLN',
+        
+        # Others
+        'technology': 'Tecnologia',
+        'tech': 'Tech',
+        'tutorial': 'Tutorial',
+        'tips': 'Dicas',
+        'best-practices': 'Melhores Práticas',
+        'performance': 'Desempenho',
+        'security': 'Segurança',
+        'testing': 'Testes',
+        'debugging': 'Depuração',
+        'optimization': 'Otimização',
+        'architecture': 'Arquitetura',
+        'design-patterns': 'Padrões de Design',
+        'clean-code': 'Código Limpo',
+        'refactoring': 'Refatoração',
+        'agile': 'Ágil',
+        'scrum': 'Scrum',
+        'git': 'Git',
+        'github': 'GitHub',
+        'open-source': 'Código Aberto',
+        'startup': 'Startup',
+        'productivity': 'Produtividade',
+        'automation': 'Automação'
+    }
+    
     @classmethod
     def should_filter_article(cls, article: Dict) -> bool:
         """Check if article should be filtered out"""
@@ -110,6 +209,9 @@ class ContentProcessor:
         if content_format == 'markdown':
             # Pre-process code blocks for better formatting
             content = cls._preprocess_code_blocks(content)
+            
+            # Pre-process markdown for better structure
+            content = cls._preprocess_markdown_structure(content)
             
             # Convert markdown to HTML
             md = markdown.Markdown(extensions=[
@@ -147,9 +249,58 @@ class ContentProcessor:
         return content
     
     @classmethod
+    def _preprocess_markdown_structure(cls, content: str) -> str:
+        """Preprocess markdown to ensure good structure"""
+        # Ensure headers are H2 not H1
+        content = re.sub(r'^# ', '## ', content, flags=re.MULTILINE)
+        
+        # Ensure proper spacing around headers
+        content = re.sub(r'\n(#{2,6} )', r'\n\n\1', content)
+        content = re.sub(r'(#{2,6} [^\n]+)\n', r'\1\n\n', content)
+        
+        # Ensure lists have proper formatting
+        content = re.sub(r'^([*+-]) ', r'\1 ', content, flags=re.MULTILINE)
+        
+        # Remove excessive blank lines
+        content = re.sub(r'\n{3,}', '\n\n', content)
+        
+        return content
+    
+    @classmethod
     def _postprocess_html(cls, html_content: str) -> str:
         """Post-process HTML for WordPress with proper code formatting"""
         soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Process headers - ensure they are H2
+        for h1 in soup.find_all('h1'):
+            h1.name = 'h2'
+        
+        # Process headers - no styling, just clean H2
+        for header in soup.find_all(['h2', 'h3', 'h4']):
+            # Remove any inline styles
+            if header.get('style'):
+                del header['style']
+            # Ensure H2 headers don't have extra styling
+            if header.name == 'h2':
+                header.clear()
+                header.string = header.get_text()
+        
+        # Process paragraphs - clean formatting
+        for p in soup.find_all('p'):
+            # Remove empty paragraphs except for spacers
+            if not p.get_text(strip=True) and not p.find('br'):
+                if p.get_text() != ' ':  # Keep &nbsp; paragraphs
+                    p.decompose()
+                    continue
+        
+        # Process lists - ensure clean formatting
+        for ul in soup.find_all('ul'):
+            if ul.get('style'):
+                del ul['style']
+        
+        for li in soup.find_all('li'):
+            if li.get('style'):
+                del li['style']
         
         # Process code blocks
         for code_block in soup.find_all('code'):
@@ -175,6 +326,16 @@ class ContentProcessor:
         for link in soup.find_all('a'):
             cls._format_link(link)
         
+        # Add HR tags between major sections
+        # This is done by checking for H2 headers
+        h2_tags = soup.find_all('h2')
+        for i, h2 in enumerate(h2_tags):
+            if i > 0:  # Don't add before the first H2
+                # Create HR element
+                hr = soup.new_tag('hr')
+                # Insert before the H2
+                h2.insert_before(hr)
+        
         return str(soup)
     
     @classmethod
@@ -195,10 +356,14 @@ class ContentProcessor:
         # Escape HTML entities
         code_content = html.escape(code_content)
         
-        # Create formatted code block with inline header (no line breaks)
-        header_html = f'<div style="background: #2d2d2d; padding: 8px 15px; border-bottom: 1px solid #3e3e3e; display: flex; justify-content: space-between; align-items: center;"><span style="color: #a0a0a0; font-size: 12px; font-family: monospace;"><i style="display: inline-block; width: 10px; height: 10px; background: #ff5f56; border-radius: 50%; margin-right: 5px;"></i><i style="display: inline-block; width: 10px; height: 10px; background: #ffbd2e; border-radius: 50%; margin-right: 5px;"></i><i style="display: inline-block; width: 10px; height: 10px; background: #27c93f; border-radius: 50%; margin-right: 10px;"></i>{language.upper()}</span><button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)" style="background: #3e3e3e; color: #a0a0a0; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">📋 Copiar</button></div>'
-        
-        formatted_html = f'<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 8px; margin: 20px 0;"><div style="background: #1e1e1e; border-radius: 6px; padding: 0; overflow: hidden;">{header_html}<pre style="margin: 0; padding: 15px; overflow-x: auto; background: #1e1e1e;"><code style="color: #d4d4d4; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 14px; line-height: 1.5;">{code_content}</code></pre></div></div>'
+        # Create formatted code block without buttons (cleaner for WordPress)
+        formatted_html = f'''<div class="codehilite">
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 8px; margin: 20px 0;">
+<div style="background: #1e1e1e; border-radius: 6px; padding: 0; overflow: hidden;">
+<pre style="margin: 0; padding: 15px; overflow-x: auto; background: #1e1e1e;"><code style="color: #d4d4d4; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5;">{code_content}</code></pre>
+</div>
+</div>
+</div>'''
         
         # Replace the original pre tag with formatted version
         new_tag = BeautifulSoup(formatted_html, 'html.parser')
@@ -212,7 +377,8 @@ class ContentProcessor:
     @classmethod
     def _format_blockquote(cls, blockquote_tag):
         """Format blockquotes"""
-        blockquote_tag['style'] = 'border-left: 4px solid #667eea; padding-left: 20px; margin: 20px 0; color: #555; font-style: italic; background: #f9f9f9; padding: 15px 20px; border-radius: 0 8px 8px 0;'
+        # Use simpler styling for WordPress
+        blockquote_tag['style'] = 'border-left: 4px solid #667eea; padding-left: 20px; margin: 20px 0; color: #555; font-style: italic;'
     
     @classmethod
     def _format_image(cls, img_tag):

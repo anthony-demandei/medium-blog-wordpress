@@ -1,608 +1,138 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Artigos & Insights Medium{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* Hero Section */
-    .hero-section {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 40px 0;
-        margin: -20px -12px 30px;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,208C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
-        background-size: cover;
-        opacity: 0.3;
-    }
-    
-    .hero-content {
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Stats Cards */
-    .stat-card {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        border: none;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-    }
-    
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin-bottom: 15px;
-    }
-    
-    .stat-icon.purple {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .stat-icon.green {
-        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-        color: white;
-    }
-    
-    .stat-icon.blue {
-        background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
-        color: white;
-    }
-    
-    .stat-icon.orange {
-        background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
-        color: white;
-    }
-    
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #2d3748;
-        line-height: 1;
-        margin-bottom: 5px;
-    }
-    
-    .stat-label {
-        color: #718096;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    /* Action Cards */
-    .action-card {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        height: 100%;
-        border: none;
-    }
-    
-    .action-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-    }
-    
-    /* Quick Actions */
-    .quick-action-btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 30px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        margin: 5px;
-    }
-    
-    .quick-action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-    
-    .quick-action-btn.secondary {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-    
-    .quick-action-btn.success {
-        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-    }
-    
-    .quick-action-btn.info {
-        background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
-    }
-    
-    /* Recent Articles */
-    .article-item {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 15px;
-        transition: all 0.3s ease;
-        border-left: 3px solid transparent;
-    }
-    
-    .article-item:hover {
-        background: white;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        border-left-color: #667eea;
-    }
-    
-    .article-meta {
-        display: flex;
-        gap: 15px;
-        margin-top: 10px;
-        font-size: 0.85rem;
-    }
-    
-    .article-meta span {
-        color: #718096;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    /* Sync Logs */
-    .log-table {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    
-    .log-table thead {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .log-table th {
-        border: none;
-        padding: 12px;
-        font-weight: 600;
-    }
-    
-    .log-table td {
-        padding: 12px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    
-    .status-badge.success {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .status-badge.error {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    /* Configuration Alert */
-    .config-alert {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .config-alert h4 {
-        margin-bottom: 15px;
-    }
-    
-    .config-alert code {
-        background: rgba(255,255,255,0.2);
-        padding: 2px 6px;
-        border-radius: 4px;
-    }
-    
-    /* Progress Ring */
-    .progress-ring {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto;
-    }
-    
-    .progress-ring-circle {
-        transition: stroke-dashoffset 0.35s;
-        transform: rotate(-90deg);
-        transform-origin: 50% 50%;
-    }
-    
-    /* Floating Action Button */
-    .fab-container {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        z-index: 100;
-    }
-    
-    .fab {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-        font-size: 24px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .fab:hover {
-        transform: scale(1.1) rotate(90deg);
-    }
-    
-    /* Animation */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .animate-fade-in {
-        animation: fadeInUp 0.6s ease;
-    }
-    
-    /* Better text contrast */
-    .action-card h4, .action-card h5, .action-card h6 {
-        color: #1a202c !important;
-        font-weight: 600 !important;
-    }
-    
-    .text-muted {
-        color: #4a5568 !important;
-    }
-    
-    .article-meta {
-        color: #4a5568 !important;
-    }
-</style>
-{% endblock %}
+{% block title %}Dashboard - Medium to WordPress{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-section">
-    <div class="container hero-content">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="display-4 fw-bold mb-3">
-                    <i class="bi bi-newspaper"></i> Artigos & Insights Medium
-                </h1>
-                <p class="lead mb-0">
-                    Automatize a descoberta e publicação de conteúdo técnico relevante para sua audiência
-                </p>
-            </div>
-            <div class="col-md-4 text-center">
-                {% if stats.total_syncs > 0 %}
-                    <svg class="progress-ring" viewBox="0 0 120 120">
-                        <circle class="progress-ring-circle" 
-                                stroke="rgba(255,255,255,0.3)" 
-                                stroke-width="8" 
-                                fill="transparent" 
-                                r="52" cx="60" cy="60"/>
-                        <circle class="progress-ring-circle" 
-                                stroke="white" 
-                                stroke-width="8" 
-                                fill="transparent" 
-                                r="52" cx="60" cy="60"
-                                stroke-dasharray="{{ 326.7 }}"
-                                stroke-dashoffset="{{ 326.7 - (326.7 * (stats.successful_syncs / stats.total_syncs)) }}"/>
-                        <text x="60" y="60" text-anchor="middle" dy="0.3em" fill="white" font-size="24" font-weight="bold">
-                            {{ ((stats.successful_syncs / stats.total_syncs) * 100) | round(0) }}%
-                        </text>
-                        <text x="60" y="80" text-anchor="middle" fill="white" font-size="12">
-                            Taxa de Sucesso
-                        </text>
-                    </svg>
-                {% endif %}
-            </div>
-        </div>
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.total_articles }}</div>
+        <div class="stat-label">Artigos Publicados</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.synced_articles }}</div>
+        <div class="stat-label">Artigos Sincronizados</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">{{ stats.sync_success_rate }}%</div>
+        <div class="stat-label">Taxa de Sucesso</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Próxima Sincronização</div>
+        <div class="text-small text-muted">{{ next_sync if next_sync else 'Não agendado' }}</div>
     </div>
 </div>
 
-<div class="container">
-    {% if not is_configured %}
-        <div class="config-alert animate-fade-in">
-            <h4><i class="bi bi-exclamation-triangle"></i> Configuração Necessária</h4>
-            <p>Configure as seguintes variáveis no arquivo <code>.env</code>:</p>
-            <ul class="mb-3">
-                {% for error in config_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-            <p class="mb-0">
-                <i class="bi bi-info-circle"></i> Copie <code>.env.example</code> para <code>.env</code> e preencha suas credenciais.
-            </p>
-        </div>
-    {% endif %}
+{% if not is_configured %}
+<div class="alert alert-warning">
+    <strong>Configuração Necessária</strong><br>
+    Configure as seguintes variáveis no arquivo .env:
+    <ul class="mb-1 mt-2">
+        {% for error in config_errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
-    <!-- API Usage Counter -->
-    {% if api_usage %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="stat-card animate-fade-in" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h4 class="mb-4" style="color: white;">
-                    <i class="bi bi-speedometer2"></i> Contador de API Medium
-                </h4>
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <div class="progress" style="height: 30px; background: rgba(255,255,255,0.2); border-radius: 15px;">
-                            <div class="progress-bar" 
-                                 role="progressbar" 
-                                 style="width: {{ api_usage.percentage_used }}%; 
-                                        background: {% if api_stats.critical_level %}#dc3545{% elif api_stats.warning_level %}#ffc107{% else %}#28a745{% endif %}; 
-                                        font-size: 16px; 
-                                        font-weight: bold;"
-                                 aria-valuenow="{{ api_usage.requests_used }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="{{ api_usage.requests_limit }}">
-                                {{ api_usage.requests_used }} / {{ api_usage.requests_limit }} requisições
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <span class="badge bg-light text-dark me-2">
-                                <i class="bi bi-calendar-month"></i> Mês: {{ api_usage.month }}
-                            </span>
-                            <span class="badge bg-light text-dark me-2">
-                                <i class="bi bi-graph-up"></i> Média diária: {{ api_stats.daily_average }} req/dia
-                            </span>
-                            <span class="badge bg-light text-dark me-2">
-                                <i class="bi bi-calculator"></i> Projeção mensal: {{ api_stats.projected_monthly }} requisições
-                            </span>
-                            {% if api_stats.warning_level %}
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-exclamation-triangle"></i> Atenção: Próximo do limite!
-                            </span>
-                            {% endif %}
-                            {% if api_stats.critical_level %}
-                            <span class="badge bg-danger">
-                                <i class="bi bi-x-circle"></i> Crítico: Limite quase atingido!
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <div class="stat-value" style="color: white; font-size: 3rem;">
-                            {{ api_usage.requests_remaining }}
-                        </div>
-                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">
-                            Requisições Restantes
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- API Usage -->
+{% if api_usage %}
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Uso da API Medium</span>
+        <span class="status-badge status-{% if api_stats.critical_level %}error{% elif api_stats.warning_level %}warning{% else %}success{% endif %}">
+            {{ api_usage.requests_used }} / {{ api_usage.requests_limit }}
+        </span>
     </div>
-    {% endif %}
-    
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stat-card animate-fade-in">
-                <div class="stat-icon purple">
-                    <i class="bi bi-file-text"></i>
-                </div>
-                <div class="stat-value">{{ stats.total_articles }}</div>
-                <div class="stat-label">Artigos Publicados</div>
-            </div>
+    <div class="article-meta">
+        <span>Mês: {{ api_usage.month }}</span>
+        <span>Média diária: {{ api_stats.daily_average }} req/dia</span>
+        <span>Projeção: {{ api_stats.projected_monthly }} requisições</span>
+        <span>Restantes: {{ api_usage.requests_remaining }}</span>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2 mt-3">
+    <!-- Recent Articles from WordPress -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Posts Recentes do WordPress</span>
+            <a href="{{ config.WORDPRESS_URL }}" target="_blank" class="btn btn-sm btn-primary">Ver Blog</a>
         </div>
         
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stat-card animate-fade-in" style="animation-delay: 0.1s;">
-                <div class="stat-icon green">
-                    <i class="bi bi-arrow-repeat"></i>
-                </div>
-                <div class="stat-value">{{ stats.total_syncs }}</div>
-                <div class="stat-label">Total de Sincronizações</div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stat-card animate-fade-in" style="animation-delay: 0.2s;">
-                <div class="stat-icon blue">
-                    <i class="bi bi-graph-up"></i>
-                </div>
-                <div class="stat-value">
-                    {% if stats.total_syncs > 0 %}
-                        {{ ((stats.successful_syncs / stats.total_syncs) * 100) | round(0) }}%
-                    {% else %}
-                        0%
+        {% if recent_articles %}
+            {% for article in recent_articles %}
+                <div class="article-item">
+                    <div class="article-title">
+                        {{ article.title|safe|striptags|truncate(80) }}
+                    </div>
+                    <div class="article-meta">
+                        <span>{{ article.author }}</span>
+                        <span>{{ article.date[:10] if article.date else 'N/A' }}</span>
+                        {% if article.categories %}
+                            <span style="color: var(--info);">{{ article.categories[0] }}</span>
+                        {% endif %}
+                        <a href="{{ article.link }}" target="_blank">Ver Post</a>
+                    </div>
+                    {% if article.excerpt %}
+                    <div class="text-small text-muted mt-1">
+                        {{ article.excerpt|safe|striptags|truncate(100) }}
+                    </div>
                     {% endif %}
                 </div>
-                <div class="stat-label">Taxa de Sucesso</div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-title">Nenhum post encontrado</div>
+                <div class="empty-state-text">Verifique a conexão com o WordPress</div>
+                <a href="/settings" class="btn btn-primary mt-2">Verificar Configurações</a>
             </div>
+        {% endif %}
+    </div>
+
+    <!-- System Status -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Status do Sistema</span>
         </div>
         
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stat-card animate-fade-in" style="animation-delay: 0.3s;">
-                <div class="stat-icon orange">
-                    <i class="bi bi-clock"></i>
-                </div>
-                <div>
-                    <div class="stat-label mb-2">Próxima Sincronização</div>
-                    <p class="mb-0 text-dark fw-semibold">{{ next_sync if next_sync else 'Não agendado' }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Content Row -->
-    <div class="row">
-        <!-- Recent Articles -->
-        <div class="col-lg-8 mb-4">
-            <div class="action-card animate-fade-in" style="animation-delay: 0.4s;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0">
-                        <i class="bi bi-clock-history text-primary"></i> Artigos Recentes
-                    </h4>
-                    <a href="/search" class="btn btn-sm btn-outline-primary">
-                        Ver Todos <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-                
-                {% if recent_articles %}
-                    {% for article in recent_articles %}
-                        <div class="article-item">
-                            <h6 class="mb-2 text-dark">
-                                {{ article.title[:80] }}{% if article.title|length > 80 %}...{% endif %}
-                            </h6>
-                            <div class="article-meta">
-                                <span>
-                                    <i class="bi bi-person"></i>
-                                    {{ article.author[:30] if article.author else 'Desconhecido' }}
-                                </span>
-                                <span>
-                                    <i class="bi bi-calendar"></i>
-                                    {{ article.synced_at[:10] if article.synced_at else 'N/A' }}
-                                </span>
-                                {% if article.wordpress_post_url %}
-                                    <a href="{{ article.wordpress_post_url }}" target="_blank" class="text-primary text-decoration-none">
-                                        <i class="bi bi-wordpress"></i> Ver no WordPress
-                                    </a>
-                                {% endif %}
-                                <a href="{{ article.url }}" target="_blank" class="text-secondary text-decoration-none">
-                                    <i class="bi bi-box-arrow-up-right"></i> Original
-                                </a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e0;"></i>
-                        <p class="text-muted mt-3">Nenhum artigo sincronizado ainda</p>
-                        <a href="/search" class="btn btn-primary">
-                            <i class="bi bi-search"></i> Buscar Artigos
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="col-lg-4">
-            <!-- Sync Status -->
-            <div class="action-card mb-4 animate-fade-in" style="animation-delay: 0.5s;">
-                <h5 class="mb-3">
-                    <i class="bi bi-activity text-success"></i> Status do Sistema
-                </h5>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Medium API</span>
-                        <span class="badge bg-success">Conectado</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">WordPress</span>
-                        <span class="badge {{ 'bg-success' if config.WORDPRESS_URL else 'bg-warning' }}">
-                            {{ 'Conectado' if config.WORDPRESS_URL else 'Configurar' }}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Gemini AI</span>
-                        <span class="badge {{ 'bg-success' if config.GEMINI_API_KEY else 'bg-secondary' }}">
-                            {{ 'Ativo' if config.GEMINI_API_KEY else 'Desativado' }}
-                        </span>
-                    </div>
-                </div>
-                <hr>
-                <h6 class="mb-3">Palavras-chave Ativas</h6>
-                <div class="d-flex flex-wrap gap-1">
-                    {% for keyword in config.SEARCH_KEYWORDS %}
-                        <span class="badge bg-primary">{{ keyword }}</span>
-                    {% endfor %}
-                </div>
+        <table>
+            <tr>
+                <td>Medium API</td>
+                <td class="text-right">
+                    <span class="status-badge status-success">Conectado</span>
+                </td>
+            </tr>
+            <tr>
+                <td>WordPress</td>
+                <td class="text-right">
+                    <span class="status-badge status-{{ 'success' if config.WORDPRESS_URL else 'warning' }}">
+                        {{ 'Conectado' if config.WORDPRESS_URL else 'Configurar' }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td>Gemini AI</td>
+                <td class="text-right">
+                    <span class="status-badge status-{{ 'success' if config.GEMINI_API_KEY else 'info' }}">
+                        {{ 'Ativo' if config.GEMINI_API_KEY else 'Desativado' }}
+                    </span>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="mt-3">
+            <div class="text-small text-muted mb-2">Palavras-chave Ativas:</div>
+            <div class="d-flex gap-1" style="flex-wrap: wrap;">
+                {% for keyword in config.SEARCH_KEYWORDS %}
+                    <span class="status-badge status-info">{{ keyword }}</span>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
-
-<!-- Floating Action Button -->
-<div class="fab-container">
-    <button class="fab" onclick="window.location.href='/search'">
-        <i class="bi bi-plus"></i>
-    </button>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Add smooth scroll behavior
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        document.querySelector(this.getAttribute('href')).scrollIntoView({
-            behavior: 'smooth'
-        });
-    });
-});
-
-// Add fade-in animation on scroll
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver(function(entries) {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('animate-fade-in');
-        }
-    });
-}, observerOptions);
-
-document.querySelectorAll('.stat-card, .action-card').forEach(el => {
-    observer.observe(el);
-});
-</script>
 {% endblock %}

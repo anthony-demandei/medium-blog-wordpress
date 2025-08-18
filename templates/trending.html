@@ -1,312 +1,565 @@
 {% extends "base.html" %}
 
-{% block title %}Trending Articles - Medium to WordPress{% endblock %}
-
-{% block extra_css %}
-<style>
-    .trending-header {
-        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
-        padding: 40px 0;
-        margin-bottom: 30px;
-        border-radius: 10px;
-        color: white;
-    }
-    
-    .mode-selector {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    
-    .mode-btn {
-        padding: 8px 20px;
-        border: 2px solid white;
-        background: transparent;
-        color: white;
-        border-radius: 25px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .mode-btn:hover, .mode-btn.active {
-        background: white;
-        color: #ff6b6b;
-    }
-    
-    .tag-selector {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-top: 20px;
-    }
-    
-    .tag-pill {
-        padding: 5px 15px;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .tag-pill:hover, .tag-pill.active {
-        background: white;
-        color: #4ecdc4;
-    }
-    
-    .article-card {
-        transition: transform 0.2s;
-        cursor: pointer;
-        height: 100%;
-    }
-    
-    .article-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    
-    .trending-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 10;
-    }
-    
-    .cover-image {
-        height: 200px;
-        object-fit: cover;
-        width: 100%;
-    }
-    
-    .author-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    
-    .author-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-</style>
-{% endblock %}
+{% block title %}Trending - Medium to WordPress{% endblock %}
 
 {% block content %}
-<div class="trending-header">
-    <div class="container">
-        <h2 class="text-center mb-4">🔥 Trending Articles</h2>
-        
-        <!-- Mode Selector -->
-        <div class="mode-selector">
-            <button class="mode-btn {% if mode == 'hot' %}active{% endif %}" onclick="changeMode('hot')">
-                🔥 Hot
-            </button>
-            <button class="mode-btn {% if mode == 'new' %}active{% endif %}" onclick="changeMode('new')">
-                ✨ New
-            </button>
-            <button class="mode-btn {% if mode == 'top_week' %}active{% endif %}" onclick="changeMode('top_week')">
-                📅 Top Week
-            </button>
-            <button class="mode-btn {% if mode == 'top_month' %}active{% endif %}" onclick="changeMode('top_month')">
-                📆 Top Month
-            </button>
-            <button class="mode-btn {% if mode == 'top_year' %}active{% endif %}" onclick="changeMode('top_year')">
-                🎯 Top Year
-            </button>
-            <button class="mode-btn {% if mode == 'top_all_time' %}active{% endif %}" onclick="changeMode('top_all_time')">
-                👑 All Time
-            </button>
-        </div>
-        
-        <!-- Tag Selector -->
-        <div class="tag-selector">
-            <span class="tag-pill {% if tag == 'programming' %}active{% endif %}" onclick="changeTag('programming')">
-                Programming
-            </span>
-            <span class="tag-pill {% if tag == 'artificial-intelligence' %}active{% endif %}" onclick="changeTag('artificial-intelligence')">
-                AI
-            </span>
-            <span class="tag-pill {% if tag == 'javascript' %}active{% endif %}" onclick="changeTag('javascript')">
-                JavaScript
-            </span>
-            <span class="tag-pill {% if tag == 'python' %}active{% endif %}" onclick="changeTag('python')">
-                Python
-            </span>
-            <span class="tag-pill {% if tag == 'react' %}active{% endif %}" onclick="changeTag('react')">
-                React
-            </span>
-            <span class="tag-pill {% if tag == 'nodejs' %}active{% endif %}" onclick="changeTag('nodejs')">
-                Node.js
-            </span>
-            <span class="tag-pill {% if tag == 'data-science' %}active{% endif %}" onclick="changeTag('data-science')">
-                Data Science
-            </span>
-            <span class="tag-pill {% if tag == 'machine-learning' %}active{% endif %}" onclick="changeTag('machine-learning')">
-                Machine Learning
-            </span>
-        </div>
+<!-- Search Form -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Buscar Artigos em Alta</span>
     </div>
-</div>
-
-<div class="container">
-    {% if articles %}
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4>{{ articles|length }} trending articles</h4>
-            <a href="/search" class="btn btn-outline-primary">
-                <i class="bi bi-search"></i> Search Articles
-            </a>
-        </div>
-        
-        <div class="row">
-            {% for article in articles %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card article-card" onclick="viewArticle('{{ article.id }}')">
-                        <!-- Trending Badge -->
-                        <span class="trending-badge badge bg-danger">
-                            {% if mode == 'hot' %}
-                                🔥 HOT
-                            {% elif mode == 'new' %}
-                                ✨ NEW
-                            {% else %}
-                                👑 TOP
-                            {% endif %}
-                        </span>
-                        
-                        {% if article.image_url %}
-                            <img src="{{ article.image_url }}" class="card-img-top cover-image" alt="{{ article.title }}">
-                        {% else %}
-                            <div class="cover-image bg-gradient d-flex align-items-center justify-content-center">
-                                <i class="bi bi-file-text text-white" style="font-size: 3rem;"></i>
-                            </div>
-                        {% endif %}
-                        
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                {{ article.title[:60] }}{% if article.title|length > 60 %}...{% endif %}
-                            </h5>
-                            
-                            {% if article.subtitle %}
-                                <p class="card-text text-muted small">
-                                    {{ article.subtitle[:100] }}{% if article.subtitle|length > 100 %}...{% endif %}
-                                </p>
-                            {% endif %}
-                            
-                            <!-- Tags -->
-                            <div class="mb-2">
-                                {% if article.tags %}
-                                    {% for tag in article.tags[:3] %}
-                                        <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ tag }}</span>
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                            
-                            <!-- Stats -->
-                            <div class="d-flex justify-content-between align-items-center small text-muted">
-                                <span><i class="bi bi-hand-thumbs-up"></i> {{ article.claps|default(0) }}</span>
-                                <span><i class="bi bi-clock"></i> {{ article.reading_time|default(0) }} min</span>
-                                <span><i class="bi bi-chat"></i> {{ article.responses_count|default(0) }}</span>
-                            </div>
-                            
-                            <!-- Author -->
-                            <div class="author-info small text-muted mt-2">
-                                <i class="bi bi-person-circle"></i>
-                                <span>{{ article.author[:30] if article.author else 'Unknown' }}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="card-footer bg-transparent">
-                            <div class="btn-group w-100" role="group">
-                                <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); translateArticle('{{ article.id }}')">
-                                    <i class="bi bi-translate"></i> Translate
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); compareArticle('{{ article.id }}')">
-                                    <i class="bi bi-layout-split"></i> View
-                                </button>
-                                <a href="{{ article.url }}" target="_blank" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();">
-                                    <i class="bi bi-box-arrow-up-right"></i> Original
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-info text-center">
-            <i class="bi bi-info-circle"></i> No trending articles found. Try selecting a different mode or tag.
-        </div>
-    {% endif %}
-</div>
-
-<!-- Loading Modal -->
-<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-body text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 mb-0">Processing...</p>
+    <form id="trendingForm" method="GET" action="/trending">
+        <div class="grid grid-3">
+            <div class="form-group">
+                <label>Tag/Tópico</label>
+                <select name="tag" required>
+                    <option value="">Selecione um tópico</option>
+                    <option value="kubernetes" {% if tag == 'kubernetes' %}selected{% endif %}>Kubernetes</option>
+                    <option value="devops" {% if tag == 'devops' %}selected{% endif %}>DevOps</option>
+                    <option value="cloud-computing" {% if tag == 'cloud-computing' %}selected{% endif %}>Cloud Computing</option>
+                    <option value="docker" {% if tag == 'docker' %}selected{% endif %}>Docker</option>
+                    <option value="n8n" {% if tag == 'n8n' %}selected{% endif %}>N8n</option>
+                    <option value="api-integration" {% if tag == 'api-integration' %}selected{% endif %}>API Integration</option>
+                    <option value="full-stack-developer" {% if tag == 'full-stack-developer' %}selected{% endif %}>Full Stack Developer</option>
+                    <option value="backend-development" {% if tag == 'backend-development' %}selected{% endif %}>Backend Development</option>
+                    <option value="nextjs" {% if tag == 'nextjs' %}selected{% endif %}>Next.js</option>
+                    <option value="web-development" {% if tag == 'web-development' %}selected{% endif %}>Web Development</option>
+                    <option value="front-end-development" {% if tag == 'front-end-development' %}selected{% endif %}>Front End Development</option>
+                    <option value="react" {% if tag == 'react' %}selected{% endif %}>React</option>
+                    <option value="tech" {% if tag == 'tech' %}selected{% endif %}>Tech</option>
+                    <option value="deep-learning" {% if tag == 'deep-learning' %}selected{% endif %}>Deep Learning</option>
+                    <option value="llm" {% if tag == 'llm' %}selected{% endif %}>LLM</option>
+                    <option value="artificial-intelligence" {% if tag == 'artificial-intelligence' %}selected{% endif %}>Artificial Intelligence</option>
+                    <option value="ai" {% if tag == 'ai' %}selected{% endif %}>AI</option>
+                    <option value="generative-ai-tools" {% if tag == 'generative-ai-tools' %}selected{% endif %}>Generative AI Tools</option>
+                    <option value="programming-languages" {% if tag == 'programming-languages' %}selected{% endif %}>Programming Languages</option>
+                    <option value="android" {% if tag == 'android' %}selected{% endif %}>Android</option>
+                    <option value="kotlin" {% if tag == 'kotlin' %}selected{% endif %}>Kotlin</option>
+                    <option value="coding" {% if tag == 'coding' %}selected{% endif %}>Coding</option>
+                    <option value="software-development" {% if tag == 'software-development' %}selected{% endif %}>Software Development</option>
+                    <option value="java" {% if tag == 'java' %}selected{% endif %}>Java</option>
+                    <option value="laravel" {% if tag == 'laravel' %}selected{% endif %}>Laravel</option>
+                    <option value="javascript" {% if tag == 'javascript' %}selected{% endif %}>JavaScript</option>
+                    <option value="programming" {% if tag == 'programming' %}selected{% endif %}>Programming</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Quantidade</label>
+                <select name="limit">
+                    <option value="1" {% if limit == 1 %}selected{% endif %}>1 artigo</option>
+                    <option value="2" {% if limit == 2 %}selected{% endif %}>2 artigos</option>
+                    <option value="3" {% if limit == 3 %}selected{% endif %}>3 artigos</option>
+                    <option value="4" {% if limit == 4 %}selected{% endif %}>4 artigos</option>
+                    <option value="5" {% if limit == 5 %}selected{% endif %}>5 artigos</option>
+                    <option value="6" {% if limit == 6 or not limit %}selected{% endif %}>6 artigos</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Período</label>
+                <select name="mode">
+                    <option value="hot" {% if mode == 'hot' or not mode %}selected{% endif %}>Em alta agora</option>
+                    <option value="new" {% if mode == 'new' %}selected{% endif %}>Mais recentes</option>
+                    <option value="top_week" {% if mode == 'top_week' %}selected{% endif %}>Top da semana</option>
+                    <option value="top_month" {% if mode == 'top_month' %}selected{% endif %}>Top do mês</option>
+                    <option value="top_year" {% if mode == 'top_year' %}selected{% endif %}>Top do ano</option>
+                </select>
             </div>
         </div>
+        <button type="submit" class="btn btn-primary" id="searchButton">Buscar</button>
+    </form>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loadingIndicator" style="display: none;">
+    <div class="card" style="text-align: center; padding: 40px;">
+        <div class="loading-spinner" style="
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0A84FF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        "></div>
+        <h3 style="color: #666; margin-bottom: 10px;">Buscando artigos em alta...</h3>
+        <p style="color: #999; font-size: 14px;">Isso pode levar alguns segundos</p>
     </div>
 </div>
+
+<!-- Results Grid -->
+{% if articles %}
+<div class="mt-3">
+    <div class="d-flex justify-between align-center mb-2">
+        <span class="text-small text-muted">{{ articles|length }} artigos com imagem de capa encontrados</span>
+        <span class="text-small" style="color: #0A84FF;">
+            <span style="margin-right: 5px;">🖼️</span>
+            Mostrando apenas artigos com imagem
+        </span>
+    </div>
+    
+    <div class="grid grid-2">
+        {% for article in articles %}
+        <div class="card" style="overflow: hidden;">
+            {% if article.cover_image or article.image_url %}
+            <img src="{{ article.cover_image or article.image_url }}" 
+                 alt="{{ article.title }}" 
+                 style="width: 100%; height: 200px; object-fit: cover;">
+            {% endif %}
+            
+            <div class="p-2">
+                <h3 class="article-title" style="font-size: 16px; font-weight: 600; margin-bottom: 8px; line-height: 1.4;">
+                    {{ article.title|truncate(80) }}
+                </h3>
+                
+                {% if article.subtitle %}
+                <p class="text-small text-muted" style="margin-bottom: 16px; line-height: 1.5;">
+                    {{ article.subtitle|truncate(150) }}
+                </p>
+                {% endif %}
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm sync-button" 
+                            data-article='{{ article | tojson }}'
+                            data-url="{{ article.url }}">
+                        Sincronizar
+                    </button>
+                    <a href="{{ article.url }}" target="_blank" class="btn btn-secondary btn-sm">
+                        Ver no Medium
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% elif searched %}
+<div class="empty-state">
+    <div class="empty-state-title">Nenhum artigo com imagem encontrado</div>
+    <div class="empty-state-text">Tente outro tópico ou período. Apenas artigos com imagem de capa são mostrados.</div>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-title">Buscar Artigos em Alta</div>
+    <div class="empty-state-text">Use o formulário acima para buscar artigos populares no Medium</div>
+    <div class="text-small" style="margin-top: 10px; color: #0A84FF;">
+        🖼️ Apenas artigos com imagem de capa serão mostrados
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function changeMode(newMode) {
-    window.location.href = `/trending?tag={{ tag }}&mode=${newMode}`;
-}
-
-function changeTag(newTag) {
-    window.location.href = `/trending?tag=${newTag}&mode={{ mode }}`;
-}
-
-function viewArticle(articleId) {
-    window.location.href = `/compare/${articleId}`;
-}
-
-function compareArticle(articleId) {
-    window.location.href = `/compare/${articleId}`;
-}
-
-function translateArticle(articleId) {
-    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
-    modal.show();
+// Adicionar event listeners aos botões de sincronização
+document.addEventListener('DOMContentLoaded', function() {
+    const syncButtons = document.querySelectorAll('.sync-button');
     
-    fetch(`/api/translate/${articleId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            modal.hide();
-            if (data.success) {
-                showAlert('Article translated successfully!', 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                showAlert('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            modal.hide();
-            showAlert('Error translating article', 'danger');
+    syncButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            syncArticle(this);
         });
+    });
+    
+    // Handle form submission with loading indicator
+    const trendingForm = document.getElementById('trendingForm');
+    const searchButton = document.getElementById('searchButton');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    if (trendingForm) {
+        trendingForm.addEventListener('submit', function(e) {
+            // Check if tag is selected
+            const tagSelect = this.querySelector('select[name="tag"]');
+            if (!tagSelect.value) {
+                e.preventDefault();
+                alert('Por favor, selecione um tópico para buscar');
+                return false;
+            }
+            
+            // Show loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'block';
+            }
+            
+            // Hide any existing results
+            const resultsGrid = document.querySelector('.grid.grid-2');
+            if (resultsGrid) {
+                resultsGrid.style.display = 'none';
+            }
+            
+            // Hide empty state if exists
+            const emptyState = document.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            // Disable search button
+            if (searchButton) {
+                searchButton.disabled = true;
+                searchButton.innerHTML = '<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #f3f3f3; border-top: 2px solid #333; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 5px;"></span> Buscando...';
+            }
+        });
+    }
+});
+
+function syncArticle(buttonElement) {
+    // Obter dados do artigo imediatamente
+    const articleData = JSON.parse(buttonElement.dataset.article);
+    const url = buttonElement.dataset.url;
+    
+    // Criar indicador de progresso
+    createProgressIndicator(articleData.title);
+    
+    // Desabilitar o botão e mostrar loading
+    const originalText = buttonElement.innerHTML;
+    buttonElement.disabled = true;
+    buttonElement.style.opacity = '0.6';
+    buttonElement.style.cursor = 'not-allowed';
+    buttonElement.innerHTML = '<span class="spinner"></span> Processando...';
+    
+    // Atualizar status
+    updateProgressStatus('Conectando ao WordPress...');
+    
+    // Simular progresso durante o processamento
+    setTimeout(() => updateProgressStatus('Processando conteúdo do artigo...'), 2000);
+    setTimeout(() => updateProgressStatus('Iniciando tradução para português...'), 5000);
+    setTimeout(() => updateProgressStatus('Traduzindo conteúdo (isso pode levar alguns minutos)...'), 8000);
+    setTimeout(() => updateProgressStatus('Fazendo upload da imagem de capa...'), 45000);
+    setTimeout(() => updateProgressStatus('Criando post no WordPress...'), 55000);
+    
+    // Fazer a requisição com os dados do artigo
+    fetch('/api/sync_article', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            url: url,
+            article: articleData
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            // Marcar todos os passos como completos
+            setStepActive('step-4');
+            document.getElementById('step-4')?.classList.add('completed');
+            updateProgressStatus('✅ Sincronização concluída com sucesso!');
+            
+            // Aguardar um pouco antes de fechar
+            setTimeout(() => {
+                removeProgressIndicator();
+                
+                // Sucesso - mudar botão para verde
+                buttonElement.style.backgroundColor = '#28a745';
+                buttonElement.innerHTML = '✓ Sincronizado';
+                buttonElement.disabled = true;
+                
+                // Mostrar notificação de sucesso
+                showNotification('Artigo sincronizado com sucesso!', 'success');
+                
+                // Adicionar botão "Ver no WordPress" se URL disponível
+                if (data.wordpress_url) {
+                    // Encontrar o container de botões
+                    const btnGroup = buttonElement.parentElement;
+                    
+                    // Criar botão "Ver no WordPress"
+                    const wpButton = document.createElement('a');
+                    wpButton.href = data.wordpress_url;
+                    wpButton.target = '_blank';
+                    wpButton.className = 'btn btn-success btn-sm';
+                    wpButton.innerHTML = '👁 Ver no WordPress';
+                    wpButton.style.marginLeft = '5px';
+                    
+                    // Adicionar o novo botão ao grupo
+                    btnGroup.appendChild(wpButton);
+                }
+            }, 1500);
+        } else {
+            // Remover indicador de progresso
+            removeProgressIndicator();
+            
+            // Erro - restaurar botão e mostrar mensagem
+            buttonElement.disabled = false;
+            buttonElement.style.opacity = '1';
+            buttonElement.style.cursor = 'pointer';
+            buttonElement.innerHTML = originalText;
+            
+            showNotification('Erro: ' + (data.message || 'Falha na sincronização'), 'error');
+        }
+    })
+    .catch(error => {
+        // Remover indicador de progresso
+        removeProgressIndicator();
+        
+        // Erro de rede - restaurar botão
+        buttonElement.disabled = false;
+        buttonElement.style.opacity = '1';
+        buttonElement.style.cursor = 'pointer';
+        buttonElement.innerHTML = originalText;
+        
+        console.error('Sync error:', error);
+        showNotification('Erro de conexão: ' + error.message, 'error');
+    });
 }
 
-function showAlert(message, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-    alertDiv.style.zIndex = '9999';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+function showNotification(message, type) {
+    // Criar elemento de notificação
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     `;
-    document.body.appendChild(alertDiv);
-    setTimeout(() => alertDiv.remove(), 5000);
+    
+    // Definir cor baseada no tipo
+    if (type === 'success') {
+        notification.style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+    } else {
+        notification.style.backgroundColor = '#17a2b8';
+    }
+    
+    notification.innerText = message;
+    document.body.appendChild(notification);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 5000);
+}
+
+// Funções de indicador de progresso
+function createProgressIndicator(articleTitle) {
+    // Remover indicador existente se houver
+    const existing = document.getElementById('sync-progress');
+    if (existing) existing.remove();
+    
+    const progressHTML = `
+        <div id="sync-progress" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            min-width: 400px;
+            max-width: 500px;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        ">
+            <h3 style="margin: 0 0 20px 0; font-size: 18px; color: #fff;">Sincronizando Artigo</h3>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px; line-height: 1.4;">${articleTitle}</p>
+            
+            <div class="progress-steps">
+                <div class="step" id="step-1">
+                    <span class="step-spinner"></span>
+                    <span class="step-text">Preparando artigo...</span>
+                </div>
+                <div class="step" id="step-2">
+                    <span class="step-spinner"></span>
+                    <span class="step-text">Traduzindo conteúdo...</span>
+                </div>
+                <div class="step" id="step-3">
+                    <span class="step-spinner"></span>
+                    <span class="step-text">Fazendo upload da imagem...</span>
+                </div>
+                <div class="step" id="step-4">
+                    <span class="step-spinner"></span>
+                    <span class="step-text">Criando post no WordPress...</span>
+                </div>
+            </div>
+            
+            <div id="progress-status" style="
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid #333;
+                font-size: 13px;
+                color: #888;
+                text-align: center;
+            ">Iniciando processo...</div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', progressHTML);
+    
+    // Iniciar animação do primeiro passo
+    setTimeout(() => setStepActive('step-1'), 100);
+}
+
+function setStepActive(stepId) {
+    // Remover active de todos os passos
+    document.querySelectorAll('.step').forEach(step => {
+        step.classList.remove('active', 'completed');
+    });
+    
+    // Marcar passos anteriores como completos
+    const steps = ['step-1', 'step-2', 'step-3', 'step-4'];
+    const currentIndex = steps.indexOf(stepId);
+    
+    for (let i = 0; i < currentIndex; i++) {
+        document.getElementById(steps[i])?.classList.add('completed');
+    }
+    
+    // Marcar passo atual como ativo
+    document.getElementById(stepId)?.classList.add('active');
+}
+
+function updateProgressStatus(message) {
+    const statusEl = document.getElementById('progress-status');
+    if (statusEl) {
+        statusEl.textContent = message;
+        
+        // Atualizar passo baseado na mensagem
+        if (message.includes('Conectando')) {
+            setStepActive('step-1');
+        } else if (message.includes('Traduzindo') || message.includes('tradução')) {
+            setStepActive('step-2');
+        } else if (message.includes('imagem') || message.includes('upload')) {
+            setStepActive('step-3');
+        } else if (message.includes('WordPress') || message.includes('Criando')) {
+            setStepActive('step-4');
+        }
+    }
+}
+
+function removeProgressIndicator() {
+    const progress = document.getElementById('sync-progress');
+    if (progress) {
+        progress.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => progress.remove(), 300);
+    }
+}
+
+// Adicionar animações CSS
+if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0A84FF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+        }
+        
+        .progress-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+        }
+        
+        .step.active {
+            opacity: 1;
+        }
+        
+        .step.completed {
+            opacity: 0.7;
+        }
+        
+        .step-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .step.active .step-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0A84FF;
+            animation: spin 1s linear infinite;
+        }
+        
+        .step.completed .step-spinner {
+            background: #28a745;
+            border-color: #28a745;
+        }
+        
+        .step.completed .step-spinner::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+        }
+        
+        .step-text {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .step.active .step-text {
+            color: white;
+            font-weight: 500;
+        }
+    `;
+    document.head.appendChild(style);
 }
 </script>
 {% endblock %}

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Medium to WordPress</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg);
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 14px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            color: var(--text);
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--bg-elevated);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: -0.3px;
+        }
+        
+        .btn-login:hover {
+            background: var(--primary-dim);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+        }
+        
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        
+        .error-message {
+            background: rgba(255, 69, 58, 0.15);
+            color: var(--error);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 24px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 30px 0;
+        }
+        
+        .footer-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <span>🔐</span>
+                </div>
+                <h1 class="login-title">Medium → WordPress</h1>
+                <p class="login-subtitle">Entre com suas credenciais</p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="error-message">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="form-group">
+                    <label for="username">Usuário</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="form-group" style="display: flex; align-items: center; margin-bottom: 24px;">
+                    <input type="checkbox" id="remember" style="width: auto; margin-right: 10px;">
+                    <label for="remember" style="margin-bottom: 0; cursor: pointer; text-transform: none; font-weight: 500;">
+                        Lembrar login e senha
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    Entrar
+                </button>
+            </form>
+            
+            <div class="divider"></div>
+            
+            <div class="footer-text">
+                Sistema protegido por autenticação
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Verificar se há credenciais salvas no localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUsername = localStorage.getItem('rememberUsername');
+            const savedPassword = localStorage.getItem('rememberPassword');
+            
+            if (savedUsername && savedPassword) {
+                document.getElementById('username').value = savedUsername;
+                document.getElementById('password').value = savedPassword;
+                document.getElementById('remember').checked = true;
+            }
+        });
+        
+        // Salvar ou remover credenciais quando o formulário for enviado
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const rememberCheckbox = document.getElementById('remember');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (rememberCheckbox.checked) {
+                // Salvar credenciais no localStorage
+                localStorage.setItem('rememberUsername', username);
+                localStorage.setItem('rememberPassword', password);
+            } else {
+                // Remover credenciais do localStorage
+                localStorage.removeItem('rememberUsername');
+                localStorage.removeItem('rememberPassword');
+            }
+        });
+        
+        // Limpar credenciais quando checkbox for desmarcado
+        document.getElementById('remember').addEventListener('change', function() {
+            if (!this.checked) {
+                localStorage.removeItem('rememberUsername');
+                localStorage.removeItem('rememberPassword');
+            }
+        });
+    </script>
+</body>
+</html>

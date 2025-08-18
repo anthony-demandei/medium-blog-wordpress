@@ -1,21 +1,9 @@
-// Medium to WordPress Sync - Frontend JavaScript
+// Medium to WordPress - Simplified JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-refresh dashboard every 30 seconds
+    // Auto-refresh dashboard every 60 seconds
     if (window.location.pathname === '/') {
-        setInterval(refreshDashboard, 30000);
-    }
-    
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Handle settings form submission
-    const settingsForm = document.getElementById('settingsForm');
-    if (settingsForm) {
-        settingsForm.addEventListener('submit', handleSettingsSubmit);
+        setInterval(refreshDashboard, 60000);
     }
 });
 
@@ -24,101 +12,137 @@ function refreshDashboard() {
     fetch('/api/status')
         .then(response => response.json())
         .then(data => {
-            updateDashboardStats(data);
+            // Reload page if data changed
+            window.location.reload();
         })
-        .catch(error => console.error('Error refreshing dashboard:', error));
+        .catch(error => console.error('Error:', error));
 }
 
-// Update dashboard statistics
-function updateDashboardStats(data) {
-    // Update stats cards
-    const statsElements = {
-        'total-articles': data.stats.total_articles,
-        'total-syncs': data.stats.total_syncs,
-        'next-sync': data.next_sync
-    };
+// Manual sync
+function manualSync() {
+    if (!confirm('Iniciar sincronização manual?')) return;
     
-    for (const [id, value] of Object.entries(statsElements)) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    }
+    fetch('/api/sync', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Sincronização concluída: ${data.result.synced} artigos`);
+                window.location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro na sincronização');
+        });
 }
 
-// Handle settings form submission
-function handleSettingsSubmit(event) {
-    event.preventDefault();
+// Sync single article
+function syncArticle(url) {
     
-    const formData = new FormData(event.target);
-    const settings = parseFormData(formData);
-    
-    // Show loading state
-    const submitButton = event.target.querySelector('button[type="submit"]');
-    const originalText = submitButton.innerHTML;
-    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Salvando...';
-    submitButton.disabled = true;
-    
-    // Send settings to server
-    fetch('/settings/save', {
+    fetch('/api/sync_article', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings)
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url})
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            showAlert('Configurações salvas com sucesso!', 'success');
-            setTimeout(() => window.location.reload(), 1500);
+        if (data.status === 'success') {
+            alert('Artigo sincronizado com sucesso!');
         } else {
-            showAlert('Erro ao salvar configurações: ' + data.error, 'danger');
+            alert('Erro: ' + (data.message || 'Falha na sincronização'));
         }
     })
     .catch(error => {
-        showAlert('Erro ao salvar configurações', 'danger');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
+        alert('Erro: ' + error.message);
     });
 }
 
-// Parse form data into structured object
-function parseFormData(formData) {
+// Test connections
+function testConnections() {
+    const modal = document.getElementById('testModal');
+    const resultsDiv = document.getElementById('testResults');
+    
+    resultsDiv.innerHTML = '<div class="loading">Testando conexões...</div>';
+    modal.classList.add('active');
+    
+    fetch('/test-connection', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            let html = '<table>';
+            html += `<tr><td>Medium API</td><td>${data.medium ? '✅' : '❌'}</td></tr>`;
+            html += `<tr><td>WordPress</td><td>${data.wordpress ? '✅' : '❌'}</td></tr>`;
+            html += '</table>';
+            resultsDiv.innerHTML = html;
+        })
+        .catch(error => {
+            resultsDiv.innerHTML = 'Erro ao testar conexões';
+        });
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('testModal').classList.remove('active');
+}
+
+// Toggle automation
+function toggleAutomation(checkbox) {
+    const enabled = checkbox.checked;
+    
+    fetch('/api/automation/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ enabled: enabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            checkbox.checked = !enabled;
+            alert('Erro ao alterar automação');
+        }
+    })
+    .catch(error => {
+        checkbox.checked = !enabled;
+        alert('Erro ao alterar automação');
+    });
+}
+
+// Save settings
+function saveSettings() {
+    const form = document.getElementById('settingsForm') || document.querySelector('form');
+    const formData = new FormData(form);
+    
+    // Build settings object with proper structure
     const settings = {
         medium_api: {
-            rapidapi_key: formData.get('rapidapi_key'),
-            rapidapi_host: formData.get('rapidapi_host')
+            rapidapi_key: formData.get('rapidapi_key') || '',
+            rapidapi_host: formData.get('rapidapi_host') || 'medium2.p.rapidapi.com'
         },
         wordpress: {
-            url: formData.get('wordpress_url'),
-            username: formData.get('wordpress_username'),
-            password: formData.get('wordpress_password'),
-            author_name: formData.get('author_name'),
-            default_category: formData.get('default_category'),
-            post_status: formData.get('post_status')
+            url: formData.get('wordpress_url') || '',
+            username: formData.get('wordpress_username') || '',
+            password: formData.get('wordpress_password') || '',
+            default_category: formData.get('default_category') || 'Technology',
+            post_status: formData.get('post_status') || 'draft'
         },
         gemini: {
-            api_key: formData.get('gemini_key'),
-            enabled: formData.get('auto_translate') === 'on'
+            api_key: formData.get('gemini_key') || '',
+            enabled: document.querySelector('input[name="auto_translate"]')?.checked || false
         },
         search: {
-            keywords: formData.get('keywords').split(',').map(k => k.trim()),
-            max_articles: parseInt(formData.get('max_articles')),
-            language_preference: formData.get('language_preference'),
-            recent_days: parseInt(formData.get('recent_days'))
+            keywords: (formData.get('keywords') || '').split(',').map(k => k.trim()).filter(k => k),
+            max_articles: parseInt(formData.get('max_articles') || '2'),
+            language_preference: formData.get('language_preference') || 'both',
+            recent_days: parseInt(formData.get('recent_days') || '30')
         },
         schedule: {
-            enabled: formData.get('schedule_enabled') === 'on',
-            hour: parseInt(formData.get('schedule_hour')),
-            minute: parseInt(formData.get('schedule_minute')),
-            timezone: formData.get('timezone')
+            enabled: document.querySelector('input[name="schedule_enabled"]')?.checked || false,
+            hour: parseInt(formData.get('schedule_hour') || '8'),
+            minute: parseInt(formData.get('schedule_minute') || '0'),
+            timezone: formData.get('timezone') || 'America/Sao_Paulo'
         },
         content: {
-            auto_translate: formData.get('auto_translate') === 'on',
+            auto_translate: document.querySelector('input[name="auto_translate"]')?.checked || false,
             target_language: 'pt',
             preserve_formatting: true,
             add_source_link: true,
@@ -126,107 +150,26 @@ function parseFormData(formData) {
         }
     };
     
-    return settings;
-}
-
-// Show alert message
-function showAlert(message, type) {
-    const alertContainer = document.querySelector('.container');
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    alertContainer.insertBefore(alertDiv, alertContainer.firstChild);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// Manual sync function
-function manualSync() {
-    const syncButton = document.querySelector('.sync-button');
-    const originalText = syncButton.innerHTML;
-    
-    syncButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Sincronizando...';
-    syncButton.disabled = true;
-    
-    fetch('/api/sync', {
-        method: 'POST'
+    // Send settings to server
+    fetch('/settings/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert(`Sincronização concluída: ${data.result.synced} artigos sincronizados`, 'success');
-            setTimeout(() => window.location.reload(), 2000);
+            alert('Configurações salvas com sucesso!');
+            window.location.reload();
         } else {
-            showAlert('Erro na sincronização: ' + data.error, 'danger');
+            alert('Erro ao salvar configurações: ' + (data.error || 'Erro desconhecido'));
         }
     })
     .catch(error => {
-        showAlert('Erro na sincronização', 'danger');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        syncButton.innerHTML = originalText;
-        syncButton.disabled = false;
+        alert('Erro ao salvar configurações: ' + error.message);
     });
-}
-
-// Export settings
-function exportSettings() {
-    fetch('/settings/export')
-        .then(response => response.json())
-        .then(data => {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'medium-wordpress-settings.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        });
-}
-
-// Import settings
-function importSettings() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json';
     
-    input.onchange = function(event) {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const settings = JSON.parse(e.target.result);
-            
-            fetch('/settings/import', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settings)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('Configurações importadas com sucesso!', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    showAlert('Erro ao importar configurações', 'danger');
-                }
-            });
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
+    return false; // Prevent form submission
 }

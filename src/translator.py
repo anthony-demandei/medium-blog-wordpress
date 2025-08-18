@@ -221,6 +221,9 @@ class GeminiTranslator:
             text = re.sub(rf'^{word}\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
             text = re.sub(rf'\n{word}\s*\n', '\n', text, flags=re.IGNORECASE)
         
+        # Remove related articles sections and author references
+        text = self._remove_related_content(text)
+        
         # Clean up extra whitespace
         text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
         text = text.strip()
@@ -232,6 +235,70 @@ class GeminiTranslator:
         if len(text) < 10 or text.count(' ') < 3:
             # Text is too short or doesn't have enough words
             logger.warning(f"Translation might be incomplete: {text[:50]}")
+        
+        return text
+    
+    def _remove_related_content(self, text: str) -> str:
+        """Remove related articles sections and author references from text"""
+        # Patterns for related articles sections
+        related_patterns = [
+            r'Leia mais artigos relacionados:.*?(?=\n\n|\Z)',
+            r'Read more articles:.*?(?=\n\n|\Z)',
+            r'Artigos relacionados:.*?(?=\n\n|\Z)',
+            r'Related articles:.*?(?=\n\n|\Z)',
+            r'Veja também:.*?(?=\n\n|\Z)',
+            r'See also:.*?(?=\n\n|\Z)',
+            r'Confira também:.*?(?=\n\n|\Z)',
+            r'Check out:.*?(?=\n\n|\Z)',
+            r'Outros artigos:.*?(?=\n\n|\Z)',
+            r'Other articles:.*?(?=\n\n|\Z)',
+        ]
+        
+        for pattern in related_patterns:
+            text = re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Remove specific article titles that look like recommendations
+        article_patterns = [
+            r'Como este jovem de \d+ anos faturou.*?\n',
+            r'Estas \d+ ferramentas.*?mudaram.*?\n',
+            r'Gastei.*?antes de perceber.*?\n',
+            r'These \d+ tools.*?changed.*?\n',
+            r'I spent.*?before realizing.*?\n',
+            r'How this.*?year old made.*?\n',
+        ]
+        
+        for pattern in article_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # Remove author signatures and social media references
+        author_patterns = [
+            r'\n.*?\|\s*SuperFast\s*\|.*?(?:\n|$)',
+            r'\n.*?\|\s*Twitter.*?\|.*?(?:\n|$)',
+            r'\n.*?\|\s*X\s*\|.*?(?:\n|$)',
+            r'\n.*?\|\s*LinkedIn\s*\|.*?(?:\n|$)',
+            r'\n.*?\|\s*GitHub\s*\|.*?(?:\n|$)',
+            r'\n.*?\|\s*Medium\s*\|.*?(?:\n|$)',
+            r'\nKalash Vasaniya.*?(?:\n|$)',
+            r'\n@\w+\s*(?:\n|$)',  # Remove Twitter handles
+            r'\nFollow me on.*?(?:\n|$)',
+            r'\nSiga-me no.*?(?:\n|$)',
+            r'\nConnect with me.*?(?:\n|$)',
+            r'\nConecte-se comigo.*?(?:\n|$)',
+        ]
+        
+        for pattern in author_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # Remove lines that are just author names or social media
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            # Skip lines that are just names or social media
+            if not re.match(r'^[A-Z][a-z]+ [A-Z][a-z]+\s*$', line.strip()) and \
+               not re.match(r'^.*?(Twitter|LinkedIn|GitHub|Medium|Instagram|Facebook|X)\s*\(?.*?\)?\s*$', line.strip(), re.IGNORECASE):
+                cleaned_lines.append(line)
+        
+        text = '\n'.join(cleaned_lines)
         
         return text
     
