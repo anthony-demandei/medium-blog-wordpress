@@ -1,7 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Try to load .env file if it exists (for local development)
+# In production, env vars will be set directly by the container
+if os.path.exists('.env'):
+    load_dotenv()
 
 class Config:
     # Medium API

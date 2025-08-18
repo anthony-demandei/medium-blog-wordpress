@@ -2,17 +2,18 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    image: ${DOCKER_IMAGE:-medium-blog-wordpress-app:latest}
     container_name: ai-blog-writer
     restart: unless-stopped
     ports:
       - "${PORT:-5001}:5001"
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - app-data:/app/data
+      - app-logs:/app/logs
     environment:
-      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
+      # All other env vars will be injected by Coolify
     networks:
       - blog-network
     healthcheck:
@@ -35,7 +36,7 @@ networks:
     driver: bridge
 
 volumes:
-  data:
+  app-data:
     driver: local
-  logs:
+  app-logs:
     driver: local

@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src
 from web_interface import WebInterface
 import logging
 
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
