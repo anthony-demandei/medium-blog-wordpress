@@ -2,8 +2,9 @@ version: '3.8'
 
 services:
   app:
-    build: .
-    container_name: ai-blog-writer
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "${PORT:-5001}:5001"
@@ -11,29 +12,15 @@ services:
       - app-data:/app/data
       - app-logs:/app/logs
     environment:
-      - FLASK_ENV=production
-      - PYTHONUNBUFFERED=1
-      # All other env vars will be injected by Coolify
-    networks:
-      - blog-network
+      FLASK_ENV: production
+      PYTHONUNBUFFERED: 1
+      # All other environment variables will be injected by Coolify
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/api/status"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-networks:
-  blog-network:
-    driver: bridge
 
 volumes:
   app-data:
